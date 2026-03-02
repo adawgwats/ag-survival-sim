@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 from .crop_model import TableCropModel
+from .dssat_benchmarks import IOWA_MAIZE_ACTIONS, build_iowa_maize_simulator
 from .dssat_suite import format_dssat_example_results, run_dssat_example_suite
 from .evaluation import evaluate_policies
 from .policy import GreedyProfitPolicy, StaticPolicy
@@ -93,6 +94,51 @@ def run_dssat_suite_cli() -> None:
         archive_root=args.archive_root,
     )
     print(format_dssat_example_results(results))
+
+
+def run_iowa_maize_demo_cli() -> None:
+    parser = argparse.ArgumentParser(
+        description="Run a DSSAT-backed Iowa maize survival benchmark."
+    )
+    parser.add_argument("--root", type=str, default=None, help="DSSAT install root. Defaults to DSSAT_ROOT or C:\\DSSAT48.")
+    parser.add_argument("--workspace-root", type=str, default="dssat_runs/iowa_maize_demo", help="Directory for per-run DSSAT workspaces.")
+    parser.add_argument("--seed", type=int, default=13, help="Scenario RNG seed.")
+    parser.add_argument("--paths", type=int, default=8, help="Number of paired scenario paths.")
+    parser.add_argument("--horizon", type=int, default=6, help="Simulation horizon in years.")
+    parser.add_argument("--cash", type=float, default=300000.0, help="Initial farm cash.")
+    parser.add_argument("--debt", type=float, default=100000.0, help="Initial farm debt.")
+    parser.add_argument("--credit-limit", type=float, default=175000.0, help="Initial credit limit.")
+    parser.add_argument("--acres", type=float, default=500.0, help="Farm acreage.")
+    args = parser.parse_args()
+
+    simulator = build_iowa_maize_simulator(
+        dssat_root=args.root,
+        workspace_root=args.workspace_root,
+    )
+    summary = evaluate_policies(
+        simulator=simulator,
+        scenario_generator=ScenarioGenerator(seed=args.seed),
+        policies={
+            "corn_low": StaticPolicy(IOWA_MAIZE_ACTIONS[0]),
+            "corn_medium": StaticPolicy(IOWA_MAIZE_ACTIONS[1]),
+        },
+        initial_state=FarmState.initial(
+            cash=args.cash,
+            debt=args.debt,
+            credit_limit=args.credit_limit,
+            acres=args.acres,
+        ),
+        horizon_years=args.horizon,
+        num_paths=args.paths,
+    )
+
+    for policy_name, metrics in summary.metrics.items():
+        print(policy_name)
+        print(f"  mean survival years: {metrics.mean_survival_years:.2f}")
+        print(f"  bankruptcy rate: {metrics.bankruptcy_rate:.2%}")
+        print(f"  mean terminal wealth: {metrics.mean_terminal_wealth:,.0f}")
+        print(f"  5th pct terminal wealth: {metrics.fifth_percentile_terminal_wealth:,.0f}")
+        print(f"  mean cumulative profit: {metrics.mean_cumulative_profit:,.0f}")
 
 
 def main() -> None:

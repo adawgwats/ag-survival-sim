@@ -1,4 +1,10 @@
 from .crop_model import CropModel, DSSATRecord, TableCropModel
+from .dataset import TrainingExample, default_group_id, generate_training_examples
+from .dssat_benchmarks import (
+    IOWA_MAIZE_ACTIONS,
+    build_iowa_maize_crop_model,
+    build_iowa_maize_simulator,
+)
 from .dssat import (
     DSSATExecutableConfig,
     DSSATExecutableCropModel,
@@ -9,6 +15,20 @@ from .dssat import (
     DSSATSummaryRecord,
     TemplateDSSATRunFactory,
     identity_yield_transform,
+)
+from .dssat_scenarios import (
+    ACRES_PER_HECTARE,
+    DEFAULT_TRANSFORM_BY_REGIME,
+    InstalledDSSATExperimentTemplate,
+    InstalledDSSATRunFactory,
+    POUNDS_PER_BUSHEL_BY_CROP,
+    POUNDS_PER_KILOGRAM,
+    WeatherTransform,
+    apply_weather_transform,
+    build_run_name,
+    dssat_hwam_to_action_units,
+    kg_per_hectare_to_bushels_per_acre,
+    read_weather_code,
 )
 from .dssat_suite import (
     DSSATExampleResult,
@@ -33,12 +53,16 @@ from .types import Action, FarmState, FarmStepRecord
 
 __all__ = [
     "Action",
+    "ACRES_PER_HECTARE",
     "AnnualScenario",
     "CropModel",
+    "DEFAULT_TRANSFORM_BY_REGIME",
     "DSSATExecutableConfig",
     "DSSATExecutableCropModel",
     "DSSATExampleResult",
     "DSSATExecutionError",
+    "InstalledDSSATExperimentTemplate",
+    "InstalledDSSATRunFactory",
     "DSSATRecord",
     "DSSATRunFactory",
     "DSSATRunSpec",
@@ -49,8 +73,11 @@ __all__ = [
     "FarmState",
     "FarmStepRecord",
     "GreedyProfitPolicy",
+    "IOWA_MAIZE_ACTIONS",
     "ObservationProcess",
     "ObservationRecord",
+    "POUNDS_PER_BUSHEL_BY_CROP",
+    "POUNDS_PER_KILOGRAM",
     "PathResult",
     "PolicyEvaluation",
     "PolicyMetrics",
@@ -60,10 +87,21 @@ __all__ = [
     "StaticPolicy",
     "TableCropModel",
     "TemplateDSSATRunFactory",
+    "TrainingExample",
+    "WeatherTransform",
+    "apply_weather_transform",
+    "build_iowa_maize_crop_model",
+    "build_iowa_maize_simulator",
+    "build_run_name",
+    "default_group_id",
+    "dssat_hwam_to_action_units",
     "evaluate_policies",
     "format_dssat_example_results",
+    "generate_training_examples",
     "identity_yield_transform",
+    "kg_per_hectare_to_bushels_per_acre",
     "list_dssat_experiments",
+    "read_weather_code",
     "resolve_dssat_root",
     "run_dssat_example",
     "run_dssat_example_suite",

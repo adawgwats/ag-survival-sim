@@ -17,6 +17,7 @@ dependencies = []
 [project.scripts]
 ag-survival-demo = "ag_survival_sim.cli:main"
 ag-survival-dssat-suite = "ag_survival_sim.cli:run_dssat_suite_cli"
+ag-survival-iowa-maize = "ag_survival_sim.cli:run_iowa_maize_demo_cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
