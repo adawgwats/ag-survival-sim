@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ag-survival-sim"
+version = "0.1.0"
+description = "Agricultural survival benchmark with paired scenario evaluation and selective-observation hooks."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Andrew Watson" }
+]
+dependencies = []
+
+[project.scripts]
+ag-survival-demo = "ag_survival_sim.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["ag_survival_sim*"]
