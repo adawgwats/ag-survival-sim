@@ -1,4 +1,15 @@
 from .crop_model import CropModel, DSSATRecord, TableCropModel
+from .dssat import (
+    DSSATExecutableConfig,
+    DSSATExecutableCropModel,
+    DSSATExecutionError,
+    DSSATRunFactory,
+    DSSATRunSpec,
+    DSSATSummaryParser,
+    DSSATSummaryRecord,
+    TemplateDSSATRunFactory,
+    identity_yield_transform,
+)
 from .evaluation import (
     PathResult,
     PolicyEvaluation,
@@ -16,7 +27,14 @@ __all__ = [
     "Action",
     "AnnualScenario",
     "CropModel",
+    "DSSATExecutableConfig",
+    "DSSATExecutableCropModel",
+    "DSSATExecutionError",
     "DSSATRecord",
+    "DSSATRunFactory",
+    "DSSATRunSpec",
+    "DSSATSummaryParser",
+    "DSSATSummaryRecord",
     "FarmPolicy",
     "FarmSimulator",
     "FarmState",
@@ -32,5 +50,7 @@ __all__ = [
     "SelectiveObservationRule",
     "StaticPolicy",
     "TableCropModel",
+    "TemplateDSSATRunFactory",
     "evaluate_policies",
+    "identity_yield_transform",
 ]

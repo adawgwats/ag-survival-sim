@@ -1,6 +1,6 @@
 # Ag Survival Sim
 
-`ag-survival-sim` is a small agricultural planning benchmark for comparing policies under shared weather, price, and finance scenarios.
+`ag-survival-sim` is an agricultural planning benchmark for comparing policies under shared weather, price, and finance scenarios.
 
 The benchmark is designed to answer:
 
@@ -13,17 +13,67 @@ The benchmark is designed to answer:
 - paired evaluation under identical scenario draws
 - finance and bankruptcy logic
 - selective-observation hooks for later minimax training benchmarks
-- DSSAT-style crop model interface
+- full DSSAT executable integration
+- DSSAT-style table model for tests and demos
 
 ## DSSAT position
 
-The package is structured so crop yields come from a `CropModel` interface. `v0` includes a tabular DSSAT-style adapter and tests use in-memory tables.
+The intended crop engine is **full DSSAT**, not a synthetic yield model.
 
-That means:
+The package now supports:
 
-- the simulator is runnable today
-- real DSSAT outputs can be plugged in later through the same interface
-- the benchmark does not pretend to reproduce full DSSAT internals
+- calling an installed DSSAT executable in batch mode
+- preparing per-run workspaces from a template directory
+- parsing `Summary.OUT`
+- selecting the correct DSSAT summary row for the current run
+
+The table model still exists, but only as:
+
+- a lightweight demo backend
+- a test fixture
+- a fallback when DSSAT is not installed locally
+
+## Full DSSAT quickstart
+
+```python
+from pathlib import Path
+
+from ag_survival_sim import (
+    Action,
+    DSSATExecutableConfig,
+    DSSATExecutableCropModel,
+    FarmState,
+    ScenarioGenerator,
+    TemplateDSSATRunFactory,
+)
+
+
+def render_scenario(working_dir, state, action, scenario):
+    # Update DSSAT experiment, weather, or management files in working_dir here.
+    # This hook is where your simulator-specific DSSAT inputs get written.
+    return None
+
+
+crop_model = DSSATExecutableCropModel(
+    run_factory=TemplateDSSATRunFactory(
+        template_dir=Path("templates/corn-soy-base"),
+        workspace_root=Path("runs"),
+        batch_file="DSSBatch.v48",
+        scenario_renderer=render_scenario,
+        selector={"TRNO": 1},
+    ),
+    config=DSSATExecutableConfig(
+        executable=(r"C:\DSSAT48\DSCSM048.EXE",),
+    ),
+)
+```
+
+Notes:
+
+- The package does **not** ship DSSAT.
+- You need a local DSSAT installation and valid experiment inputs.
+- `Summary.OUT` parsing is built in.
+- Unit alignment is your responsibility. If DSSAT outputs `HWAM` in raw DSSAT units, pass a `yield_transform` in `DSSATExecutableConfig` so the simulator and finance model use consistent units.
 
 ## Quickstart
 
@@ -65,6 +115,8 @@ summary = evaluate_policies(
 
 print(summary.metrics["baseline"].mean_survival_years)
 ```
+
+That example uses the demo table model so the package remains runnable without DSSAT.
 
 ## Metrics
 
