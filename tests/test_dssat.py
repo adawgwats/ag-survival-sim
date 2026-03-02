@@ -46,6 +46,30 @@ def test_dssat_summary_parser_reads_standard_header_rows(tmp_path: Path) -> None
     assert parser.select_record(records, {"RUNNO": 2}).get("CROP") == "SOY"
 
 
+def test_dssat_summary_parser_handles_fixed_width_realistic_rows(tmp_path: Path) -> None:
+    summary_path = tmp_path / "Summary.OUT"
+    summary_path.write_text(
+        "\n".join(
+            [
+                "*SUMMARY : real DSSAT output",
+                "!IDENTIFIERS...",
+                "@   RUNNO   TRNO CR EXNAME.. TNAM..................... FNAM.... WSTA.... HYEAR   HWAM",
+                "        1      1 MZ IUAF9901 N=56 KG/HA POP=4.7 PL/M2 IUAF0001 IUAF9901  1999   5140",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    parser = DSSATSummaryParser()
+    records = parser.parse(summary_path)
+
+    assert len(records) == 1
+    assert records[0].get("EXNAME") == "IUAF9901"
+    assert records[0].get("TNAM") == "N=56 KG/HA POP=4.7 PL/M2"
+    assert records[0].get("WSTA") == "IUAF9901"
+    assert records[0].get("HWAM") == 5140
+
+
 def test_dssat_executable_crop_model_runs_external_command_and_parses_summary(
     tmp_path: Path,
 ) -> None:

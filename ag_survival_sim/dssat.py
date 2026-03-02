@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass, field
@@ -70,6 +71,7 @@ class DSSATSummaryParser:
         if not summary_output_path.exists():
             raise FileNotFoundError(f"DSSAT summary output not found: {summary_output_path}")
 
+        columns: list[tuple[str, int, int | None]] | None = None
         headers: list[str] | None = None
         records: list[DSSATSummaryRecord] = []
 
@@ -78,18 +80,21 @@ class DSSATSummaryParser:
             if not line or line.startswith("*") or line.startswith("!"):
                 continue
             if line.startswith("@"):
-                headers = [token.upper() for token in line[1:].split()]
+                if "." in raw_line:
+                    columns = _parse_fixed_width_columns(raw_line)
+                    headers = None
+                else:
+                    headers = [token.upper() for token in line[1:].split()]
+                    columns = None
                 continue
-            if headers is None:
+            if columns is None and headers is None:
                 continue
-            tokens = line.split()
-            if len(tokens) < len(headers):
-                continue
-            row = {
-                header: _coerce_value(token)
-                for header, token in zip(headers, tokens[: len(headers)])
-            }
-            records.append(DSSATSummaryRecord(row))
+            if columns is not None:
+                row = _parse_fixed_width_row(raw_line, columns)
+            else:
+                row = _parse_whitespace_row(line, headers or [])
+            if row:
+                records.append(DSSATSummaryRecord(row))
 
         if not records:
             raise DSSATExecutionError(
@@ -246,3 +251,48 @@ def _selector_matches(record_value: object | None, expected_value: object) -> bo
     if record_value is None:
         return False
     return str(record_value).strip().upper() == str(expected_value).strip().upper()
+
+
+def _parse_fixed_width_columns(header_line: str) -> list[tuple[str, int, int | None]]:
+    content = header_line[1:]
+    matches = list(re.finditer(r"\S+", content))
+    columns: list[tuple[str, int, int | None]] = []
+
+    for index, match in enumerate(matches):
+        raw_name = match.group(0).rstrip(".")
+        if not raw_name:
+            continue
+        start = match.start()
+        end = matches[index + 1].start() if index + 1 < len(matches) else None
+        columns.append((raw_name.upper(), start, end))
+
+    return columns
+
+
+def _parse_fixed_width_row(
+    row_line: str,
+    columns: Sequence[tuple[str, int, int | None]],
+) -> dict[str, object]:
+    content = row_line[1:] if row_line.startswith("@") else row_line
+    row: dict[str, object] = {}
+
+    for name, start, end in columns:
+        token = content[start:end].strip() if end is not None else content[start:].strip()
+        if not token:
+            row[name] = ""
+            continue
+        row[name] = _coerce_value(token)
+
+    if all(value == "" for value in row.values()):
+        return {}
+    return row
+
+
+def _parse_whitespace_row(row_line: str, headers: Sequence[str]) -> dict[str, object]:
+    tokens = row_line.split()
+    if len(tokens) < len(headers):
+        return {}
+    return {
+        header: _coerce_value(token)
+        for header, token in zip(headers, tokens[: len(headers)])
+    }
