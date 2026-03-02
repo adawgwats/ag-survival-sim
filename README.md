@@ -26,6 +26,7 @@ The package now supports:
 - preparing per-run workspaces from a template directory
 - parsing `Summary.OUT`
 - selecting the correct DSSAT summary row for the current run
+- running official DSSAT example suites from an installed DSSAT root
 
 The table model still exists, but only as:
 
@@ -74,6 +75,32 @@ Notes:
 - You need a local DSSAT installation and valid experiment inputs.
 - `Summary.OUT` parsing is built in.
 - Unit alignment is your responsibility. If DSSAT outputs `HWAM` in raw DSSAT units, pass a `yield_transform` in `DSSATExecutableConfig` so the simulator and finance model use consistent units.
+- By default, helper utilities look for DSSAT at `DSSAT_ROOT` or `C:\DSSAT48`.
+
+## Official DSSAT example sweep
+
+To verify a real DSSAT installation and collect benchmark-ready yield data from official examples:
+
+```bash
+ag-survival-dssat-suite --crop-directory Maize --archive-root dssat_runs/maize
+```
+
+That command:
+
+- discovers DSSAT at `DSSAT_ROOT` or `C:\DSSAT48`
+- runs the official maize `*.MZX` examples with the real `DSCSM048.EXE`
+- parses each generated `Summary.OUT`
+- prints a compact table with per-experiment treatment counts and `HWAM` ranges
+- optionally archives the raw DSSAT outputs for later inspection
+
+Python API:
+
+```python
+from ag_survival_sim import format_dssat_example_results, run_dssat_example_suite
+
+results = run_dssat_example_suite(crop_directory="Maize", archive_root="dssat_runs/maize")
+print(format_dssat_example_results(results))
+```
 
 ## Quickstart
 

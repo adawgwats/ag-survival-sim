@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import argparse
+
 from .crop_model import TableCropModel
+from .dssat_suite import format_dssat_example_results, run_dssat_example_suite
 from .evaluation import evaluate_policies
 from .policy import GreedyProfitPolicy, StaticPolicy
 from .scenario import ScenarioGenerator
@@ -31,7 +34,7 @@ def build_demo_simulator() -> FarmSimulator:
     return FarmSimulator(crop_model=crop_model)
 
 
-def main() -> None:
+def run_demo() -> None:
     simulator = build_demo_simulator()
     generator = ScenarioGenerator(seed=13)
 
@@ -60,6 +63,40 @@ def main() -> None:
         print(f"  bankruptcy rate: {metrics.bankruptcy_rate:.2%}")
         print(f"  mean terminal wealth: {metrics.mean_terminal_wealth:,.0f}")
         print(f"  5th pct terminal wealth: {metrics.fifth_percentile_terminal_wealth:,.0f}")
+
+
+def run_dssat_suite_cli() -> None:
+    parser = argparse.ArgumentParser(
+        description="Run official DSSAT example experiments and summarize Summary.OUT yields."
+    )
+    parser.add_argument("--root", type=str, default=None, help="DSSAT install root. Defaults to DSSAT_ROOT or C:\\DSSAT48.")
+    parser.add_argument("--crop-directory", type=str, default="Maize", help="DSSAT crop directory to run.")
+    parser.add_argument(
+        "--experiment",
+        dest="experiments",
+        action="append",
+        default=None,
+        help="Specific DSSAT experiment file to run. Repeat to run multiple examples.",
+    )
+    parser.add_argument(
+        "--archive-root",
+        type=str,
+        default=None,
+        help="Optional directory where each experiment's DSSAT output files are copied.",
+    )
+    args = parser.parse_args()
+
+    results = run_dssat_example_suite(
+        root=args.root,
+        crop_directory=args.crop_directory,
+        experiments=args.experiments,
+        archive_root=args.archive_root,
+    )
+    print(format_dssat_example_results(results))
+
+
+def main() -> None:
+    run_demo()
 
 
 if __name__ == "__main__":

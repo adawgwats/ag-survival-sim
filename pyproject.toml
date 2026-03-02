@@ -16,9 +16,13 @@ dependencies = []
 
 [project.scripts]
 ag-survival-demo = "ag_survival_sim.cli:main"
+ag-survival-dssat-suite = "ag_survival_sim.cli:run_dssat_suite_cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+  "integration: requires a real local DSSAT installation",
+]
 
 [tool.setuptools.packages.find]
 include = ["ag_survival_sim*"]

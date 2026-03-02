@@ -10,6 +10,14 @@ from .dssat import (
     TemplateDSSATRunFactory,
     identity_yield_transform,
 )
+from .dssat_suite import (
+    DSSATExampleResult,
+    format_dssat_example_results,
+    list_dssat_experiments,
+    resolve_dssat_root,
+    run_dssat_example,
+    run_dssat_example_suite,
+)
 from .evaluation import (
     PathResult,
     PolicyEvaluation,
@@ -29,6 +37,7 @@ __all__ = [
     "CropModel",
     "DSSATExecutableConfig",
     "DSSATExecutableCropModel",
+    "DSSATExampleResult",
     "DSSATExecutionError",
     "DSSATRecord",
     "DSSATRunFactory",
@@ -52,5 +61,10 @@ __all__ = [
     "TableCropModel",
     "TemplateDSSATRunFactory",
     "evaluate_policies",
+    "format_dssat_example_results",
     "identity_yield_transform",
+    "list_dssat_experiments",
+    "resolve_dssat_root",
+    "run_dssat_example",
+    "run_dssat_example_suite",
 ]

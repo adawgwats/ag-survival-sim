@@ -7,3 +7,5 @@ dist/
 *.egg-info/
 .venv/
 venv/
+_vendor/
+dssat_runs/
