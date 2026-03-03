@@ -5,6 +5,7 @@ from .dssat_benchmarks import (
     DSSATBenchmarkDefinition,
     DSSATCropInventory,
     DTSP_RICE_ACTIONS,
+    GEORGIA_MAIZE_MANAGEMENT_ACTIONS,
     GEORGIA_SOYBEAN_ACTIONS,
     GEORGIA_PEANUT_ACTIONS,
     IOWA_MAIZE_ACTIONS,
@@ -14,6 +15,8 @@ from .dssat_benchmarks import (
     build_benchmark_simulator,
     build_dtsp_rice_crop_model,
     build_dtsp_rice_simulator,
+    build_georgia_maize_management_crop_model,
+    build_georgia_maize_management_simulator,
     build_georgia_peanut_crop_model,
     build_georgia_peanut_simulator,
     build_georgia_soybean_crop_model,
@@ -83,6 +86,7 @@ from .evaluation import (
 from .observation import ObservationProcess, ObservationRecord, SelectiveObservationRule
 from .policy import FarmPolicy, GreedyProfitPolicy, StaticPolicy
 from .scenario import AnnualScenario, ScenarioGenerator
+from .finance import planned_operating_cost
 from .simulator import FarmSimulator
 from .types import Action, FarmState, FarmStepRecord
 
@@ -103,6 +107,7 @@ __all__ = [
     "DSSATExecutionError",
     "DSSATTreatmentRow",
     "DTSP_RICE_ACTIONS",
+    "GEORGIA_MAIZE_MANAGEMENT_ACTIONS",
     "InstalledDSSATExperimentTemplate",
     "InstalledDSSATRunFactory",
     "DSSATRecord",
@@ -142,6 +147,8 @@ __all__ = [
     "build_benchmark_simulator",
     "build_dtsp_rice_crop_model",
     "build_dtsp_rice_simulator",
+    "build_georgia_maize_management_crop_model",
+    "build_georgia_maize_management_simulator",
     "build_georgia_peanut_crop_model",
     "build_georgia_peanut_simulator",
     "build_georgia_soybean_crop_model",
@@ -170,6 +177,7 @@ __all__ = [
     "kg_per_hectare_to_bushels_per_acre",
     "list_benchmark_definitions",
     "list_dssat_experiments",
+    "planned_operating_cost",
     "read_weather_code",
     "resolve_dssat_root",
     "run_dssat_example",

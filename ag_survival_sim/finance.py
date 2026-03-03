@@ -15,6 +15,10 @@ class CropEconomics:
 ECONOMICS_BY_ACTION: dict[tuple[str, str], CropEconomics] = {
     ("corn", "low"): CropEconomics(base_price=4.70, operating_cost_per_acre=520.0),
     ("corn", "medium"): CropEconomics(base_price=4.70, operating_cost_per_acre=620.0),
+    ("corn", "rainfed_low"): CropEconomics(base_price=4.70, operating_cost_per_acre=520.0),
+    ("corn", "rainfed_high"): CropEconomics(base_price=4.70, operating_cost_per_acre=620.0),
+    ("corn", "irrigated_low"): CropEconomics(base_price=4.70, operating_cost_per_acre=760.0),
+    ("corn", "irrigated_high"): CropEconomics(base_price=4.70, operating_cost_per_acre=900.0),
     ("soy", "low"): CropEconomics(base_price=11.40, operating_cost_per_acre=310.0),
     ("soy", "medium"): CropEconomics(base_price=11.40, operating_cost_per_acre=380.0),
     ("wheat", "low"): CropEconomics(base_price=6.10, operating_cost_per_acre=250.0),
@@ -35,6 +39,11 @@ NEXT_YEAR_OPERATING_BUFFER = 0.50
 def realized_price(action: Action, scenario: AnnualScenario) -> float:
     economics = ECONOMICS_BY_ACTION[action.key]
     return max(economics.base_price * scenario.market_price_multiplier - scenario.basis_penalty, 0.01)
+
+
+def planned_operating_cost(action: Action, acres: float) -> float:
+    economics = ECONOMICS_BY_ACTION[action.key]
+    return economics.operating_cost_per_acre * acres
 
 
 def operating_cost(action: Action, acres: float, scenario: AnnualScenario) -> float:

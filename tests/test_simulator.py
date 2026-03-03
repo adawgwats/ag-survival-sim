@@ -35,3 +35,20 @@ def test_drought_reduces_next_state_financials() -> None:
 
     assert normal_record.net_income > drought_record.net_income
     assert normal_record.ending_state.cash > drought_record.ending_state.cash
+
+
+def test_unaffordable_action_triggers_failure() -> None:
+    simulator = FarmSimulator(
+        crop_model=TableCropModel.from_records(
+            [
+                ("corn", "irrigated_high", "normal", 200.0),
+            ]
+        )
+    )
+    record = simulator.step(
+        state=FarmState.initial(cash=20_000.0, debt=150_000.0, credit_limit=30_000.0, acres=500.0),
+        action=Action("corn", "irrigated_high"),
+        scenario=build_scenario("normal"),
+    )
+
+    assert record.ending_state.alive is False

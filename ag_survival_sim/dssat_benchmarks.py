@@ -57,6 +57,25 @@ BENCHMARK_DEFINITIONS: dict[str, DSSATBenchmarkDefinition] = {
         },
         description="Iowa maize nitrogen response benchmark built from IUAF9901.",
     ),
+    "georgia_maize_management": DSSATBenchmarkDefinition(
+        name="georgia_maize_management",
+        crop="corn",
+        crop_directory="Maize",
+        experiment_file="UFGA8201.MZX",
+        actions=(
+            Action("corn", "rainfed_low"),
+            Action("corn", "rainfed_high"),
+            Action("corn", "irrigated_low"),
+            Action("corn", "irrigated_high"),
+        ),
+        action_treatment_map={
+            ("corn", "rainfed_low"): 1,
+            ("corn", "rainfed_high"): 2,
+            ("corn", "irrigated_low"): 3,
+            ("corn", "irrigated_high"): 4,
+        },
+        description="Georgia maize irrigation and nitrogen benchmark built from UFGA8201.",
+    ),
     "georgia_soybean": DSSATBenchmarkDefinition(
         name="georgia_soybean",
         crop="soy",
@@ -139,6 +158,7 @@ BENCHMARK_DEFINITIONS: dict[str, DSSATBenchmarkDefinition] = {
 
 
 IOWA_MAIZE_ACTIONS = BENCHMARK_DEFINITIONS["iowa_maize"].actions
+GEORGIA_MAIZE_MANAGEMENT_ACTIONS = BENCHMARK_DEFINITIONS["georgia_maize_management"].actions
 GEORGIA_SOYBEAN_ACTIONS = BENCHMARK_DEFINITIONS["georgia_soybean"].actions
 KANSAS_WHEAT_ACTIONS = BENCHMARK_DEFINITIONS["kansas_wheat"].actions
 DTSP_RICE_ACTIONS = BENCHMARK_DEFINITIONS["dtsp_rice"].actions
@@ -270,6 +290,30 @@ def build_georgia_soybean_simulator(
 ) -> FarmSimulator:
     return build_benchmark_simulator(
         "georgia_soybean",
+        dssat_root=dssat_root,
+        workspace_root=workspace_root,
+    )
+
+
+def build_georgia_maize_management_crop_model(
+    *,
+    dssat_root: str | Path | None = None,
+    workspace_root: str | Path = "dssat_runs/georgia_maize_management",
+) -> DSSATExecutableCropModel:
+    return build_benchmark_crop_model(
+        "georgia_maize_management",
+        dssat_root=dssat_root,
+        workspace_root=workspace_root,
+    )
+
+
+def build_georgia_maize_management_simulator(
+    *,
+    dssat_root: str | Path | None = None,
+    workspace_root: str | Path = "dssat_runs/georgia_maize_management",
+) -> FarmSimulator:
+    return build_benchmark_simulator(
+        "georgia_maize_management",
         dssat_root=dssat_root,
         workspace_root=workspace_root,
     )

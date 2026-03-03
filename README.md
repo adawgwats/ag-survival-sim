@@ -128,6 +128,7 @@ That sweep:
 The installed DSSAT root may contain many crop directories. The simulation package can discover all of them, but the current benchmark bundles are intentionally narrower:
 
 - `iowa_maize`
+- `georgia_maize_management`
 - `georgia_soybean`
 - `kansas_wheat`
 - `dtsp_rice`
@@ -145,6 +146,7 @@ ag-survival-dssat-benchmark --benchmark iowa_maize --paths 8 --horizon 6
 Available benchmark bundles:
 
 - `iowa_maize` from `IUAF9901.MZX`
+- `georgia_maize_management` from `UFGA8201.MZX`
 - `georgia_soybean` from `UFGA8401.SBX`
 - `kansas_wheat` from `KSAS8101.WHX`
 - `dtsp_rice` from `DTSP8502.RIX`
@@ -155,6 +157,7 @@ These paths currently:
 
 - uses the real installed DSSAT executable
 - map low/medium action levels to official DSSAT treatment numbers
+- include a richer four-action maize management benchmark with rainfed/irrigated and low/high nitrogen actions
 - writes per-run experiment directories instead of mutating the shared DSSAT install
 - perturbs the weather file to create `good`, `normal`, and `drought` years
 - converts DSSAT `HWAM` output from `kg/ha` into crop-specific economic units for the finance model
@@ -176,7 +179,7 @@ simulator = build_benchmark_simulator(
 This is still a narrow bridge into the full benchmark:
 
 - only a small benchmark-ready subset of installed DSSAT crops is economically configured
-- two action levels per benchmark crop
+- two action levels for most benchmark crops, with a four-action maize management bundle
 - stylized weather perturbations rather than a calibrated weather generator
 - rice currently has a weaker weather-response signal than peanut and sunflower under the default perturbations
 

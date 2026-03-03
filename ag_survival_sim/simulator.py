@@ -10,6 +10,7 @@ from .finance import (
     dscr,
     liquidity_failure,
     operating_cost,
+    planned_operating_cost,
     realized_price,
 )
 from .scenario import AnnualScenario
@@ -37,6 +38,7 @@ class FarmSimulator:
         )
         price = realized_price(action, scenario)
         gross_revenue = yield_per_acre * state.acres * price
+        planned_cost = planned_operating_cost(action, state.acres)
         total_operating_cost = operating_cost(action, state.acres, scenario)
         annual_debt_payment = debt_payment(state)
         net_income = gross_revenue - total_operating_cost - annual_debt_payment
@@ -46,7 +48,8 @@ class FarmSimulator:
         next_failures = state.consecutive_dscr_failures + 1 if coverage < 1.0 else 0
 
         next_year_min_operating_cost = total_operating_cost * NEXT_YEAR_OPERATING_BUFFER
-        failed = liquidity_failure(
+        financing_failure = planned_cost > state.cash + state.remaining_credit
+        failed = financing_failure or liquidity_failure(
             ending_cash=next_cash,
             ending_debt=next_debt,
             credit_limit=state.credit_limit,

@@ -6,6 +6,7 @@ import pytest
 
 from ag_survival_sim import (
     Action,
+    DSSATExecutionError,
     FarmState,
     build_benchmark_crop_model,
     discover_dssat_crop_inventory,
@@ -38,6 +39,7 @@ def test_discover_dssat_crop_inventory_finds_x_experiments(tmp_path: Path) -> No
 
 def test_benchmark_registry_includes_multi_crop_entries() -> None:
     assert get_benchmark_definition("iowa_maize").crop == "corn"
+    assert get_benchmark_definition("georgia_maize_management").crop == "corn"
     assert get_benchmark_definition("georgia_soybean").crop == "soy"
     assert get_benchmark_definition("kansas_wheat").crop == "wheat"
     assert get_benchmark_definition("dtsp_rice").crop == "rice"
@@ -50,6 +52,7 @@ def test_benchmark_registry_includes_multi_crop_entries() -> None:
     ("benchmark_name", "action"),
     (
         ("iowa_maize", Action("corn", "medium")),
+        ("georgia_maize_management", Action("corn", "irrigated_high")),
         ("georgia_soybean", Action("soy", "medium")),
         ("kansas_wheat", Action("wheat", "medium")),
         ("dtsp_rice", Action("rice", "medium")),
@@ -69,21 +72,34 @@ def test_real_benchmark_crop_models_run_across_weather_regimes(
         )
     except FileNotFoundError:
         pytest.skip("real DSSAT installation not available")
+    except OSError as error:
+        if getattr(error, "errno", None) == 28:
+            pytest.skip("insufficient disk space for DSSAT integration test")
+        raise
 
     state = FarmState.initial()
     yields = {}
     for regime in ("good", "normal", "drought"):
-        yields[regime] = model.yield_per_acre(
-            state=state,
-            action=action,
-            scenario=AnnualScenario(
-                year_index=0,
-                weather_regime=regime,
-                weather_yield_multiplier=1.0,
-                market_price_multiplier=1.0,
-                operating_cost_multiplier=1.0,
-            ),
-        )
+        try:
+            yields[regime] = model.yield_per_acre(
+                state=state,
+                action=action,
+                scenario=AnnualScenario(
+                    year_index=0,
+                    weather_regime=regime,
+                    weather_yield_multiplier=1.0,
+                    market_price_multiplier=1.0,
+                    operating_cost_multiplier=1.0,
+                ),
+            )
+        except OSError as error:
+            if getattr(error, "errno", None) == 28:
+                pytest.skip("insufficient disk space for DSSAT integration test")
+            raise
+        except DSSATExecutionError as error:
+            if "not enough space on the disk" in str(error).lower():
+                pytest.skip("insufficient disk space for DSSAT integration test")
+            raise
 
     assert yields["normal"] > 0.0
     assert yields["good"] >= yields["drought"]
