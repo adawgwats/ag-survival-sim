@@ -93,9 +93,7 @@ class InstalledDSSATRunFactory:
             raise KeyError(f"no DSSAT treatment mapping for action {action.key}")
 
         weather_code = read_weather_code(experiment_path)
-        weather_source = dssat_root / "Weather" / f"{weather_code}.WTH"
-        if not weather_source.exists():
-            raise FileNotFoundError(f"DSSAT weather file not found: {weather_source}")
+        weather_source = resolve_weather_file_path(experiment_path, dssat_root=dssat_root)
 
         run_name = build_run_name(
             experiment_stem=experiment_path.stem,
@@ -107,9 +105,11 @@ class InstalledDSSATRunFactory:
             shutil.rmtree(working_dir)
         working_dir.mkdir(parents=True, exist_ok=True)
 
+        for support_file in iter_experiment_bundle_files(experiment_path):
+            shutil.copy2(support_file, working_dir / support_file.name)
+
         run_experiment = working_dir / experiment_path.name
-        run_weather = working_dir / weather_source.name
-        shutil.copy2(experiment_path, run_experiment)
+        run_weather = working_dir / f"{weather_code}.WTH"
         shutil.copy2(weather_source, run_weather)
 
         transform = self.template.weather_transforms.get(
@@ -165,6 +165,34 @@ def read_weather_code(experiment_path: Path) -> str:
         if len(tokens) >= 3:
             return tokens[2].strip()
     raise ValueError(f"could not parse weather code from {experiment_path}")
+
+
+def resolve_weather_file_path(experiment_path: Path, *, dssat_root: Path) -> Path:
+    weather_directory = dssat_root / "Weather"
+    weather_code = read_weather_code(experiment_path)
+    candidates = [
+        weather_directory / f"{weather_code}.WTH",
+        weather_directory / f"{experiment_path.stem[:8]}.WTH",
+    ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    prefix_matches = sorted(weather_directory.glob(f"{weather_code}*.WTH"))
+    if len(prefix_matches) == 1:
+        return prefix_matches[0]
+
+    raise FileNotFoundError(
+        f"DSSAT weather file not found for {experiment_path.name}; "
+        f"tried {[candidate.name for candidate in candidates]}"
+    )
+
+
+def iter_experiment_bundle_files(experiment_path: Path):
+    for candidate in sorted(experiment_path.parent.glob(f"{experiment_path.stem}.*")):
+        if candidate.is_file():
+            yield candidate
 
 
 def apply_weather_transform(
