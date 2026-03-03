@@ -113,6 +113,18 @@ inventory = discover_dssat_crop_inventory()
 print(format_crop_inventory(inventory))
 ```
 
+To collect a treatment-level CSV across all discovered DSSAT crop directories:
+
+```bash
+ag-survival-dssat-all-crops --output-csv dssat_runs/all_crops/dssat_treatment_rows.csv
+```
+
+That sweep:
+
+- runs official DSSAT example experiments across every discovered crop directory
+- exports one CSV row per `Summary.OUT` treatment row
+- skips DSSAT workflow directories such as `ClimateChange`, `Sequence`, `Spatial`, `Seasonal`, and `YieldForecast`
+
 The installed DSSAT root may contain many crop directories. The simulation package can discover all of them, but the current benchmark bundles are intentionally narrower:
 
 - `iowa_maize`

@@ -10,7 +10,7 @@ from .dssat_scenarios import (
     InstalledDSSATRunFactory,
     dssat_hwam_to_action_units,
 )
-from .dssat_suite import resolve_dssat_root
+from .dssat_suite import NON_CROP_EXPERIMENT_DIRECTORIES, resolve_dssat_root
 from .simulator import FarmSimulator
 from .types import Action
 
@@ -101,6 +101,8 @@ def discover_dssat_crop_inventory(
     inventories: list[DSSATCropInventory] = []
 
     for directory in sorted(path for path in root.iterdir() if path.is_dir() and not path.name.startswith(".")):
+        if directory.name in NON_CROP_EXPERIMENT_DIRECTORIES:
+            continue
         experiment_files = sorted(_iter_experiment_files(directory))
         if not experiment_files:
             continue

@@ -10,7 +10,12 @@ from .dssat_benchmarks import (
     format_crop_inventory,
     get_benchmark_definition,
 )
-from .dssat_suite import format_dssat_example_results, run_dssat_example_suite
+from .dssat_suite import (
+    format_dssat_all_crops_summary,
+    format_dssat_example_results,
+    run_dssat_all_crops_sweep,
+    run_dssat_example_suite,
+)
 from .evaluation import evaluate_policies
 from .policy import GreedyProfitPolicy, StaticPolicy
 from .scenario import ScenarioGenerator
@@ -172,6 +177,43 @@ def run_dssat_catalog_cli() -> None:
         definition = BENCHMARK_DEFINITIONS[name]
         action_labels = ", ".join(f"{action.crop}/{action.input_level}" for action in definition.actions)
         print(f"{name}: {definition.crop_directory}/{definition.experiment_file} -> {action_labels}")
+
+
+def run_dssat_all_crops_cli() -> None:
+    parser = argparse.ArgumentParser(
+        description="Run official DSSAT examples across all discovered crop directories and export treatment rows."
+    )
+    parser.add_argument("--root", type=str, default=None, help="DSSAT install root. Defaults to DSSAT_ROOT or C:\\DSSAT48.")
+    parser.add_argument(
+        "--crop-directory",
+        dest="crop_directories",
+        action="append",
+        default=None,
+        help="Optional crop directory to include. Repeat to limit the sweep.",
+    )
+    parser.add_argument(
+        "--archive-root",
+        type=str,
+        default=None,
+        help="Optional directory where raw DSSAT outputs are archived by crop and experiment.",
+    )
+    parser.add_argument(
+        "--output-csv",
+        type=str,
+        default="dssat_runs/all_crops/dssat_treatment_rows.csv",
+        help="CSV file where treatment-level DSSAT rows are exported.",
+    )
+    args = parser.parse_args()
+
+    _results, summary = run_dssat_all_crops_sweep(
+        root=args.root,
+        crop_directories=args.crop_directories,
+        archive_root=args.archive_root,
+        output_csv=args.output_csv,
+    )
+    print(format_dssat_all_crops_summary(summary))
+    print()
+    print(f"treatment rows exported to: {args.output_csv}")
 
 
 def main() -> None:
