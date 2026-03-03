@@ -47,13 +47,15 @@ def list_dssat_experiments(
     *,
     root: str | Path | None = None,
     crop_directory: str = "Maize",
-    suffix: str = ".MZX",
+    suffix: str | None = None,
 ) -> list[str]:
     dssat_root = resolve_dssat_root(root)
     crop_path = dssat_root / crop_directory
     if not crop_path.exists():
         raise FileNotFoundError(f"DSSAT crop directory not found: {crop_path}")
-    return sorted(path.name for path in crop_path.glob(f"*{suffix}"))
+    if suffix is not None:
+        return sorted(path.name for path in crop_path.glob(f"*{suffix}"))
+    return sorted(path.name for path in _iter_experiment_files(crop_path))
 
 
 def run_dssat_example(
@@ -207,3 +209,12 @@ def _format_float(value: float | None) -> str:
     if value is None:
         return "-"
     return f"{value:.2f}"
+
+
+def _iter_experiment_files(crop_path: Path):
+    for path in crop_path.iterdir():
+        if not path.is_file():
+            continue
+        suffix = path.suffix.upper()
+        if len(suffix) == 4 and suffix.endswith("X") and suffix[1:].isalnum():
+            yield path

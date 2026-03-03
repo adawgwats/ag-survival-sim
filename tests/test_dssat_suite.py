@@ -36,6 +36,24 @@ def test_format_dssat_example_results_includes_status_columns() -> None:
     assert "missing weather" in table
 
 
+def test_list_dssat_experiments_auto_detects_crop_suffixes(tmp_path: Path) -> None:
+    root = tmp_path / "DSSAT48"
+    root.mkdir()
+    (root / "DSCSM048.EXE").write_text("fake", encoding="utf-8")
+
+    wheat = root / "Wheat"
+    wheat.mkdir()
+    (wheat / "RORO7401.WHX").write_text("x", encoding="utf-8")
+    (wheat / "README.txt").write_text("ignore", encoding="utf-8")
+
+    soybean = root / "Soybean"
+    soybean.mkdir()
+    (soybean / "UFGA8401.SBX").write_text("x", encoding="utf-8")
+
+    assert list_dssat_experiments(root=root, crop_directory="Wheat") == ["RORO7401.WHX"]
+    assert list_dssat_experiments(root=root, crop_directory="Soybean") == ["UFGA8401.SBX"]
+
+
 @pytest.mark.integration
 def test_real_dssat_example_runs_when_install_is_available(tmp_path: Path) -> None:
     try:

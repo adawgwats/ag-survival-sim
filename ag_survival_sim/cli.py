@@ -3,7 +3,13 @@ from __future__ import annotations
 import argparse
 
 from .crop_model import TableCropModel
-from .dssat_benchmarks import IOWA_MAIZE_ACTIONS, build_iowa_maize_simulator
+from .dssat_benchmarks import (
+    BENCHMARK_DEFINITIONS,
+    build_benchmark_simulator,
+    discover_dssat_crop_inventory,
+    format_crop_inventory,
+    get_benchmark_definition,
+)
 from .dssat_suite import format_dssat_example_results, run_dssat_example_suite
 from .evaluation import evaluate_policies
 from .policy import GreedyProfitPolicy, StaticPolicy
@@ -98,10 +104,16 @@ def run_dssat_suite_cli() -> None:
 
 def run_iowa_maize_demo_cli() -> None:
     parser = argparse.ArgumentParser(
-        description="Run a DSSAT-backed Iowa maize survival benchmark."
+        description="Run a DSSAT-backed survival benchmark."
     )
     parser.add_argument("--root", type=str, default=None, help="DSSAT install root. Defaults to DSSAT_ROOT or C:\\DSSAT48.")
-    parser.add_argument("--workspace-root", type=str, default="dssat_runs/iowa_maize_demo", help="Directory for per-run DSSAT workspaces.")
+    parser.add_argument(
+        "--benchmark",
+        choices=sorted(BENCHMARK_DEFINITIONS),
+        default="iowa_maize",
+        help="Benchmark-ready DSSAT crop bundle to run.",
+    )
+    parser.add_argument("--workspace-root", type=str, default="dssat_runs/dssat_benchmark_demo", help="Directory for per-run DSSAT workspaces.")
     parser.add_argument("--seed", type=int, default=13, help="Scenario RNG seed.")
     parser.add_argument("--paths", type=int, default=8, help="Number of paired scenario paths.")
     parser.add_argument("--horizon", type=int, default=6, help="Simulation horizon in years.")
@@ -111,17 +123,20 @@ def run_iowa_maize_demo_cli() -> None:
     parser.add_argument("--acres", type=float, default=500.0, help="Farm acreage.")
     args = parser.parse_args()
 
-    simulator = build_iowa_maize_simulator(
+    benchmark = get_benchmark_definition(args.benchmark)
+    simulator = build_benchmark_simulator(
+        args.benchmark,
         dssat_root=args.root,
         workspace_root=args.workspace_root,
     )
+    policies = {
+        f"{action.crop}_{action.input_level}": StaticPolicy(action)
+        for action in benchmark.actions
+    }
     summary = evaluate_policies(
         simulator=simulator,
         scenario_generator=ScenarioGenerator(seed=args.seed),
-        policies={
-            "corn_low": StaticPolicy(IOWA_MAIZE_ACTIONS[0]),
-            "corn_medium": StaticPolicy(IOWA_MAIZE_ACTIONS[1]),
-        },
+        policies=policies,
         initial_state=FarmState.initial(
             cash=args.cash,
             debt=args.debt,
@@ -139,6 +154,24 @@ def run_iowa_maize_demo_cli() -> None:
         print(f"  mean terminal wealth: {metrics.mean_terminal_wealth:,.0f}")
         print(f"  5th pct terminal wealth: {metrics.fifth_percentile_terminal_wealth:,.0f}")
         print(f"  mean cumulative profit: {metrics.mean_cumulative_profit:,.0f}")
+
+
+def run_dssat_catalog_cli() -> None:
+    parser = argparse.ArgumentParser(
+        description="List discovered DSSAT crops and benchmark-ready crop bundles."
+    )
+    parser.add_argument("--root", type=str, default=None, help="DSSAT install root. Defaults to DSSAT_ROOT or C:\\DSSAT48.")
+    args = parser.parse_args()
+
+    inventory = discover_dssat_crop_inventory(dssat_root=args.root)
+    print("Discovered DSSAT crops with experiment templates")
+    print(format_crop_inventory(inventory))
+    print()
+    print("Benchmark-ready crop bundles")
+    for name in sorted(BENCHMARK_DEFINITIONS):
+        definition = BENCHMARK_DEFINITIONS[name]
+        action_labels = ", ".join(f"{action.crop}/{action.input_level}" for action in definition.actions)
+        print(f"{name}: {definition.crop_directory}/{definition.experiment_file} -> {action_labels}")
 
 
 def main() -> None:
