@@ -9,6 +9,8 @@ from .dssat_scenarios import (
     InstalledDSSATExperimentTemplate,
     InstalledDSSATRunFactory,
     dssat_hwam_to_action_units,
+    kg_per_hectare_to_hundredweight_per_acre,
+    kg_per_hectare_to_short_tons_per_acre,
 )
 from .dssat_suite import NON_CROP_EXPERIMENT_DIRECTORIES, resolve_dssat_root
 from .simulator import FarmSimulator
@@ -85,12 +87,63 @@ BENCHMARK_DEFINITIONS: dict[str, DSSATBenchmarkDefinition] = {
         },
         description="Kansas wheat nitrogen response benchmark built from KSAS8101.",
     ),
+    "dtsp_rice": DSSATBenchmarkDefinition(
+        name="dtsp_rice",
+        crop="rice",
+        crop_directory="Rice",
+        experiment_file="DTSP8502.RIX",
+        actions=(
+            Action("rice", "low"),
+            Action("rice", "medium"),
+        ),
+        action_treatment_map={
+            ("rice", "low"): 2,
+            ("rice", "medium"): 4,
+        },
+        yield_transform=lambda value, _record, _action: kg_per_hectare_to_hundredweight_per_acre(value),
+        description="Rice nitrogen response benchmark built from DTSP8502.",
+    ),
+    "georgia_peanut": DSSATBenchmarkDefinition(
+        name="georgia_peanut",
+        crop="peanut",
+        crop_directory="Peanut",
+        experiment_file="UFGA8701.PNX",
+        actions=(
+            Action("peanut", "low"),
+            Action("peanut", "medium"),
+        ),
+        action_treatment_map={
+            ("peanut", "low"): 2,
+            ("peanut", "medium"): 1,
+        },
+        yield_transform=lambda value, _record, _action: kg_per_hectare_to_short_tons_per_acre(value),
+        description="Georgia peanut disease-control benchmark built from UFGA8701.",
+    ),
+    "uafd_sunflower": DSSATBenchmarkDefinition(
+        name="uafd_sunflower",
+        crop="sunflower",
+        crop_directory="Sunflower",
+        experiment_file="UAFD0801.SUX",
+        actions=(
+            Action("sunflower", "low"),
+            Action("sunflower", "medium"),
+        ),
+        action_treatment_map={
+            ("sunflower", "low"): 2,
+            ("sunflower", "medium"): 4,
+        },
+        yield_transform=lambda value, _record, _action: kg_per_hectare_to_hundredweight_per_acre(value),
+        description="Sunflower nitrogen response benchmark built from UAFD0801.",
+    ),
 }
 
 
 IOWA_MAIZE_ACTIONS = BENCHMARK_DEFINITIONS["iowa_maize"].actions
 GEORGIA_SOYBEAN_ACTIONS = BENCHMARK_DEFINITIONS["georgia_soybean"].actions
 KANSAS_WHEAT_ACTIONS = BENCHMARK_DEFINITIONS["kansas_wheat"].actions
+DTSP_RICE_ACTIONS = BENCHMARK_DEFINITIONS["dtsp_rice"].actions
+GEORGIA_PEANUT_ACTIONS = BENCHMARK_DEFINITIONS["georgia_peanut"].actions
+UAFD_SUNFLOWER_ACTIONS = BENCHMARK_DEFINITIONS["uafd_sunflower"].actions
 
 
 def discover_dssat_crop_inventory(
@@ -241,6 +294,78 @@ def build_kansas_wheat_simulator(
 ) -> FarmSimulator:
     return build_benchmark_simulator(
         "kansas_wheat",
+        dssat_root=dssat_root,
+        workspace_root=workspace_root,
+    )
+
+
+def build_dtsp_rice_crop_model(
+    *,
+    dssat_root: str | Path | None = None,
+    workspace_root: str | Path = "dssat_runs/dtsp_rice",
+) -> DSSATExecutableCropModel:
+    return build_benchmark_crop_model(
+        "dtsp_rice",
+        dssat_root=dssat_root,
+        workspace_root=workspace_root,
+    )
+
+
+def build_dtsp_rice_simulator(
+    *,
+    dssat_root: str | Path | None = None,
+    workspace_root: str | Path = "dssat_runs/dtsp_rice",
+) -> FarmSimulator:
+    return build_benchmark_simulator(
+        "dtsp_rice",
+        dssat_root=dssat_root,
+        workspace_root=workspace_root,
+    )
+
+
+def build_georgia_peanut_crop_model(
+    *,
+    dssat_root: str | Path | None = None,
+    workspace_root: str | Path = "dssat_runs/georgia_peanut",
+) -> DSSATExecutableCropModel:
+    return build_benchmark_crop_model(
+        "georgia_peanut",
+        dssat_root=dssat_root,
+        workspace_root=workspace_root,
+    )
+
+
+def build_georgia_peanut_simulator(
+    *,
+    dssat_root: str | Path | None = None,
+    workspace_root: str | Path = "dssat_runs/georgia_peanut",
+) -> FarmSimulator:
+    return build_benchmark_simulator(
+        "georgia_peanut",
+        dssat_root=dssat_root,
+        workspace_root=workspace_root,
+    )
+
+
+def build_uafd_sunflower_crop_model(
+    *,
+    dssat_root: str | Path | None = None,
+    workspace_root: str | Path = "dssat_runs/uafd_sunflower",
+) -> DSSATExecutableCropModel:
+    return build_benchmark_crop_model(
+        "uafd_sunflower",
+        dssat_root=dssat_root,
+        workspace_root=workspace_root,
+    )
+
+
+def build_uafd_sunflower_simulator(
+    *,
+    dssat_root: str | Path | None = None,
+    workspace_root: str | Path = "dssat_runs/uafd_sunflower",
+) -> FarmSimulator:
+    return build_benchmark_simulator(
+        "uafd_sunflower",
         dssat_root=dssat_root,
         workspace_root=workspace_root,
     )

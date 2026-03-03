@@ -10,6 +10,8 @@ from ag_survival_sim import (
     WeatherTransform,
     apply_weather_transform,
     build_iowa_maize_crop_model,
+    kg_per_hectare_to_hundredweight_per_acre,
+    kg_per_hectare_to_short_tons_per_acre,
     kg_per_hectare_to_bushels_per_acre,
     resolve_dssat_root,
 )
@@ -19,6 +21,16 @@ from ag_survival_sim.scenario import AnnualScenario
 def test_kg_per_hectare_to_bushels_per_acre_converts_corn_units() -> None:
     converted = kg_per_hectare_to_bushels_per_acre(6277.0, crop="corn")
     assert converted == pytest.approx(100.0, rel=0.01)
+
+
+def test_kg_per_hectare_to_hundredweight_per_acre_converts_units() -> None:
+    converted = kg_per_hectare_to_hundredweight_per_acre(4484.0)
+    assert converted == pytest.approx(40.0, rel=0.02)
+
+
+def test_kg_per_hectare_to_short_tons_per_acre_converts_units() -> None:
+    converted = kg_per_hectare_to_short_tons_per_acre(4484.0)
+    assert converted == pytest.approx(2.0, rel=0.02)
 
 
 def test_apply_weather_transform_changes_daily_values(tmp_path: Path) -> None:
@@ -53,7 +65,7 @@ def test_apply_weather_transform_changes_daily_values(tmp_path: Path) -> None:
 
 
 @pytest.mark.integration
-def test_real_iowa_maize_crop_model_orders_weather_regimes() -> None:
+def test_real_iowa_maize_crop_model_orders_weather_regimes(tmp_path: Path) -> None:
     try:
         resolve_dssat_root()
     except FileNotFoundError:
@@ -61,7 +73,7 @@ def test_real_iowa_maize_crop_model_orders_weather_regimes() -> None:
 
     state = FarmState.initial()
     action = Action("corn", "medium")
-    model = build_iowa_maize_crop_model(workspace_root="dssat_runs/test_iowa_maize")
+    model = build_iowa_maize_crop_model(workspace_root=tmp_path / "iowa_maize")
 
     yields = {}
     for regime in ("good", "normal", "drought"):

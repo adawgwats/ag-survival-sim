@@ -13,6 +13,8 @@ from .types import Action, FarmState
 
 POUNDS_PER_KILOGRAM = 2.2046226218
 ACRES_PER_HECTARE = 2.4710538147
+POUNDS_PER_HUNDREDWEIGHT = 100.0
+POUNDS_PER_SHORT_TON = 2000.0
 POUNDS_PER_BUSHEL_BY_CROP: dict[str, float] = {
     "corn": 56.0,
     "soy": 60.0,
@@ -296,6 +298,21 @@ def kg_per_hectare_to_bushels_per_acre(
     pounds_per_hectare = yield_kg_per_hectare * POUNDS_PER_KILOGRAM
     bushels_per_hectare = pounds_per_hectare / pounds_per_bushel
     return bushels_per_hectare / ACRES_PER_HECTARE
+
+
+def kg_per_hectare_to_pounds_per_acre(yield_kg_per_hectare: float) -> float:
+    pounds_per_hectare = yield_kg_per_hectare * POUNDS_PER_KILOGRAM
+    return pounds_per_hectare / ACRES_PER_HECTARE
+
+
+def kg_per_hectare_to_hundredweight_per_acre(yield_kg_per_hectare: float) -> float:
+    pounds_per_acre = kg_per_hectare_to_pounds_per_acre(yield_kg_per_hectare)
+    return pounds_per_acre / POUNDS_PER_HUNDREDWEIGHT
+
+
+def kg_per_hectare_to_short_tons_per_acre(yield_kg_per_hectare: float) -> float:
+    pounds_per_acre = kg_per_hectare_to_pounds_per_acre(yield_kg_per_hectare)
+    return pounds_per_acre / POUNDS_PER_SHORT_TON
 
 
 def dssat_hwam_to_action_units(

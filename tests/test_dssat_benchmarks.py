@@ -40,6 +40,9 @@ def test_benchmark_registry_includes_multi_crop_entries() -> None:
     assert get_benchmark_definition("iowa_maize").crop == "corn"
     assert get_benchmark_definition("georgia_soybean").crop == "soy"
     assert get_benchmark_definition("kansas_wheat").crop == "wheat"
+    assert get_benchmark_definition("dtsp_rice").crop == "rice"
+    assert get_benchmark_definition("georgia_peanut").crop == "peanut"
+    assert get_benchmark_definition("uafd_sunflower").crop == "sunflower"
 
 
 @pytest.mark.integration
@@ -49,16 +52,20 @@ def test_benchmark_registry_includes_multi_crop_entries() -> None:
         ("iowa_maize", Action("corn", "medium")),
         ("georgia_soybean", Action("soy", "medium")),
         ("kansas_wheat", Action("wheat", "medium")),
+        ("dtsp_rice", Action("rice", "medium")),
+        ("georgia_peanut", Action("peanut", "medium")),
+        ("uafd_sunflower", Action("sunflower", "medium")),
     ),
 )
 def test_real_benchmark_crop_models_run_across_weather_regimes(
     benchmark_name: str,
     action: Action,
+    tmp_path: Path,
 ) -> None:
     try:
         model = build_benchmark_crop_model(
             benchmark_name,
-            workspace_root=f"dssat_runs/test_{benchmark_name}",
+            workspace_root=tmp_path / benchmark_name,
         )
     except FileNotFoundError:
         pytest.skip("real DSSAT installation not available")

@@ -19,6 +19,12 @@ ECONOMICS_BY_ACTION: dict[tuple[str, str], CropEconomics] = {
     ("soy", "medium"): CropEconomics(base_price=11.40, operating_cost_per_acre=380.0),
     ("wheat", "low"): CropEconomics(base_price=6.10, operating_cost_per_acre=250.0),
     ("wheat", "medium"): CropEconomics(base_price=6.10, operating_cost_per_acre=325.0),
+    ("rice", "low"): CropEconomics(base_price=16.0, operating_cost_per_acre=430.0),
+    ("rice", "medium"): CropEconomics(base_price=16.0, operating_cost_per_acre=520.0),
+    ("peanut", "low"): CropEconomics(base_price=525.0, operating_cost_per_acre=360.0),
+    ("peanut", "medium"): CropEconomics(base_price=525.0, operating_cost_per_acre=440.0),
+    ("sunflower", "low"): CropEconomics(base_price=22.0, operating_cost_per_acre=210.0),
+    ("sunflower", "medium"): CropEconomics(base_price=22.0, operating_cost_per_acre=295.0),
 }
 
 ANNUAL_INTEREST_RATE = 0.06
