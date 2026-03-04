@@ -87,3 +87,33 @@ def test_land_mortgage_grace_period_delays_payments_without_burning_amortization
     assert first.ending_state.land_mortgage_years_remaining == 10
     assert second.ending_state.land_mortgage_years_remaining == 10
     assert third.ending_state.land_mortgage_years_remaining == 9
+
+
+def test_dscr_uses_pre_debt_operating_cash_flow() -> None:
+    simulator = FarmSimulator(
+        crop_model=TableCropModel.from_records(
+            [
+                ("soy", "low", "drought", 38.0),
+            ]
+        )
+    )
+    state = FarmState.initial(
+        cash=250_000.0,
+        debt=0.0,
+        credit_limit=100_000.0,
+        acres=100.0,
+        land_value_per_acre=4_000.0,
+        land_financed_fraction=0.5,
+        land_mortgage_rate=0.045,
+        land_mortgage_years=30,
+        land_mortgage_grace_years=0,
+    )
+    record = simulator.step(
+        state=state,
+        action=Action("soy", "low"),
+        scenario=build_scenario("drought"),
+    )
+
+    assert record.debt_payment > 0.0
+    assert record.net_income > 0.0
+    assert record.dscr > 1.0

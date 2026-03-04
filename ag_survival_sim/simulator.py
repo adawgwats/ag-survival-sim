@@ -46,7 +46,8 @@ class FarmSimulator:
         annual_operating_debt_payment = operating_debt_payment(state)
         annual_land_payment = land_mortgage_payment(state)
         annual_debt_payment = debt_payment(state)
-        net_income = gross_revenue - total_operating_cost - annual_debt_payment
+        operating_cash_flow = gross_revenue - total_operating_cost
+        net_income = operating_cash_flow - annual_debt_payment
         next_cash = state.cash + net_income
         next_debt = max(state.debt * (1.0 + ANNUAL_INTEREST_RATE) - annual_operating_debt_payment, 0.0)
         next_land_balance = next_land_mortgage_balance(state, annual_land_payment)
@@ -60,7 +61,9 @@ class FarmSimulator:
         else:
             next_land_years = 0
             next_land_grace_years = 0
-        coverage = dscr(net_income, annual_debt_payment)
+        # Debt service coverage should be based on cash flow available to service debt,
+        # not income after debt service has already been subtracted.
+        coverage = dscr(operating_cash_flow, annual_debt_payment)
         next_failures = state.consecutive_dscr_failures + 1 if coverage < 1.0 else 0
 
         next_year_min_operating_cost = total_operating_cost * NEXT_YEAR_OPERATING_BUFFER

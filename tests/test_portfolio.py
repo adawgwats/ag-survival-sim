@@ -1,5 +1,6 @@
 from ag_survival_sim import (
     Action,
+    AnnualScenario,
     AllocationSlice,
     ChristensenKnightianPortfolioPolicy,
     FarmState,
@@ -140,6 +141,40 @@ def test_christensen_knightian_policy_returns_feasible_diversified_allocation() 
     assert allocation.total_acres <= 100.0
     assert allocation.total_acres > 0.0
     assert all(allocation_slice.acres <= 50.0 + 1e-6 for allocation_slice in allocation.slices)
+
+
+def test_portfolio_dscr_uses_pre_debt_operating_cash_flow() -> None:
+    simulator = PortfolioFarmSimulator(
+        crop_model=TableCropModel.from_records(
+            [
+                ("soy", "low", "drought", 38.0),
+            ]
+        )
+    )
+    state = FarmState.initial(
+        cash=250_000.0,
+        debt=0.0,
+        credit_limit=100_000.0,
+        acres=100.0,
+        land_value_per_acre=4_000.0,
+        land_financed_fraction=0.5,
+        land_mortgage_rate=0.045,
+        land_mortgage_years=30,
+        land_mortgage_grace_years=0,
+    )
+    scenario = AnnualScenario(
+        year_index=0,
+        weather_regime="drought",
+        weather_yield_multiplier=1.0,
+        market_price_multiplier=1.0,
+        operating_cost_multiplier=1.0,
+    )
+    allocation = PortfolioAllocation((AllocationSlice(Action("soy", "low"), 100.0),))
+    record = simulator.step(state=state, allocation=allocation, scenario=scenario)
+
+    assert record.debt_payment > 0.0
+    assert record.net_income > 0.0
+    assert record.dscr > 1.0
 
 
 def test_random_portfolio_policy_returns_feasible_allocation() -> None:
