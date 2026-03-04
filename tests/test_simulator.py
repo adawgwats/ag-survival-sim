@@ -52,3 +52,38 @@ def test_unaffordable_action_triggers_failure() -> None:
     )
 
     assert record.ending_state.alive is False
+
+
+def test_land_mortgage_grace_period_delays_payments_without_burning_amortization_years() -> None:
+    simulator = FarmSimulator(
+        crop_model=TableCropModel.from_records(
+            [
+                ("corn", "low", "normal", 180.0),
+            ]
+        )
+    )
+    state = FarmState.initial(
+        cash=500_000.0,
+        debt=0.0,
+        credit_limit=200_000.0,
+        acres=100.0,
+        land_value_per_acre=2_000.0,
+        land_financed_fraction=1.0,
+        land_mortgage_rate=0.05,
+        land_mortgage_years=10,
+        land_mortgage_grace_years=2,
+    )
+    scenario = build_scenario("normal")
+
+    first = simulator.step(state=state, action=Action("corn", "low"), scenario=scenario)
+    second = simulator.step(state=first.ending_state, action=Action("corn", "low"), scenario=scenario)
+    third = simulator.step(state=second.ending_state, action=Action("corn", "low"), scenario=scenario)
+
+    assert first.debt_payment == 0.0
+    assert second.debt_payment == 0.0
+    assert third.debt_payment > 0.0
+    assert first.ending_state.land_mortgage_grace_years_remaining == 1
+    assert second.ending_state.land_mortgage_grace_years_remaining == 0
+    assert first.ending_state.land_mortgage_years_remaining == 10
+    assert second.ending_state.land_mortgage_years_remaining == 10
+    assert third.ending_state.land_mortgage_years_remaining == 9

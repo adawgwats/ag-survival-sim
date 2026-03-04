@@ -130,6 +130,7 @@ def run_iowa_maize_demo_cli() -> None:
     parser.add_argument("--land-financed-fraction", type=float, default=0.5, help="Fraction of initial land cost financed by mortgage.")
     parser.add_argument("--land-mortgage-rate", type=float, default=0.045, help="Annual land mortgage rate.")
     parser.add_argument("--land-mortgage-years", type=int, default=30, help="Remaining land mortgage years at simulation start.")
+    parser.add_argument("--land-mortgage-grace-years", type=int, default=2, help="Grace periods before land mortgage payments begin.")
     args = parser.parse_args()
 
     benchmark = get_benchmark_definition(args.benchmark)
@@ -151,6 +152,7 @@ def run_iowa_maize_demo_cli() -> None:
         land_financed_fraction=args.land_financed_fraction,
         land_mortgage_rate=args.land_mortgage_rate,
         land_mortgage_years=args.land_mortgage_years,
+        land_mortgage_grace_years=args.land_mortgage_grace_years,
     )
 
     print("initial state")
@@ -162,6 +164,7 @@ def run_iowa_maize_demo_cli() -> None:
     print(f"  land mortgage balance: {initial_state.land_mortgage_balance:,.0f}")
     print(f"  land mortgage rate: {initial_state.land_mortgage_rate:.3f}")
     print(f"  land mortgage years remaining: {initial_state.land_mortgage_years_remaining}")
+    print(f"  land mortgage grace years remaining: {initial_state.land_mortgage_grace_years_remaining}")
 
     summary = evaluate_policies(
         simulator=simulator,

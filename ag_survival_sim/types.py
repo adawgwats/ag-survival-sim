@@ -6,6 +6,7 @@ DEFAULT_LAND_VALUE_PER_ACRE = 4_000.0
 DEFAULT_LAND_MORTGAGE_RATE = 0.045
 DEFAULT_LAND_MORTGAGE_YEARS = 30
 DEFAULT_LAND_FINANCED_FRACTION = 0.5
+DEFAULT_LAND_MORTGAGE_GRACE_YEARS = 2
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,7 @@ class FarmState:
     land_mortgage_balance: float
     land_mortgage_rate: float
     land_mortgage_years_remaining: int
+    land_mortgage_grace_years_remaining: int
     year: int
     alive: bool
     consecutive_dscr_failures: int = 0
@@ -45,12 +47,15 @@ class FarmState:
         land_financed_fraction: float = DEFAULT_LAND_FINANCED_FRACTION,
         land_mortgage_rate: float = DEFAULT_LAND_MORTGAGE_RATE,
         land_mortgage_years: int = DEFAULT_LAND_MORTGAGE_YEARS,
+        land_mortgage_grace_years: int = DEFAULT_LAND_MORTGAGE_GRACE_YEARS,
         year: int = 0,
     ) -> "FarmState":
         if not 0.0 <= land_financed_fraction <= 1.0:
             raise ValueError("land_financed_fraction must be in [0, 1].")
         if land_mortgage_years < 0:
             raise ValueError("land_mortgage_years must be nonnegative.")
+        if land_mortgage_grace_years < 0:
+            raise ValueError("land_mortgage_grace_years must be nonnegative.")
         if land_mortgage_rate < 0.0:
             raise ValueError("land_mortgage_rate must be nonnegative.")
         land_mortgage_balance = acres * land_value_per_acre * land_financed_fraction
@@ -63,6 +68,7 @@ class FarmState:
             land_mortgage_balance=land_mortgage_balance,
             land_mortgage_rate=land_mortgage_rate,
             land_mortgage_years_remaining=land_mortgage_years if land_mortgage_balance > 0.0 else 0,
+            land_mortgage_grace_years_remaining=land_mortgage_grace_years if land_mortgage_balance > 0.0 else 0,
             year=year,
             alive=True,
         )

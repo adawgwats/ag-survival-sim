@@ -26,6 +26,7 @@ class TrainingExample:
     land_mortgage_balance: float
     land_mortgage_rate: float
     land_mortgage_years_remaining: int
+    land_mortgage_grace_years_remaining: int
     latent_yield_per_acre: float
     latent_net_income: float
     latent_price: float
@@ -85,6 +86,7 @@ def generate_training_examples(
                 land_mortgage_balance=record.starting_state.land_mortgage_balance,
                 land_mortgage_rate=record.starting_state.land_mortgage_rate,
                 land_mortgage_years_remaining=record.starting_state.land_mortgage_years_remaining,
+                land_mortgage_grace_years_remaining=record.starting_state.land_mortgage_grace_years_remaining,
                 latent_yield_per_acre=record.realized_yield_per_acre,
                 latent_net_income=record.net_income,
                 latent_price=record.realized_price,

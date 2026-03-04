@@ -60,6 +60,7 @@ def test_default_group_id_marks_drought_and_losses_as_distressed() -> None:
         land_mortgage_balance=2_000_000.0,
         land_mortgage_rate=0.045,
         land_mortgage_years_remaining=30,
+        land_mortgage_grace_years_remaining=2,
         latent_yield_per_acre=50.0,
         latent_net_income=-12_000.0,
         latent_price=4.5,

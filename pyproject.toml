@@ -12,7 +12,9 @@ license = { text = "MIT" }
 authors = [
   { name = "Andrew Watson" }
 ]
-dependencies = []
+dependencies = [
+  "matplotlib>=3.8",
+]
 
 [project.scripts]
 ag-survival-demo = "ag_survival_sim.cli:main"

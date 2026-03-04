@@ -50,11 +50,16 @@ class FarmSimulator:
         next_cash = state.cash + net_income
         next_debt = max(state.debt * (1.0 + ANNUAL_INTEREST_RATE) - annual_operating_debt_payment, 0.0)
         next_land_balance = next_land_mortgage_balance(state, annual_land_payment)
-        next_land_years = (
-            max(state.land_mortgage_years_remaining - 1, 0)
-            if next_land_balance > 0.0
-            else 0
-        )
+        if next_land_balance > 0.0:
+            next_land_grace_years = max(state.land_mortgage_grace_years_remaining - 1, 0)
+            next_land_years = (
+                state.land_mortgage_years_remaining
+                if state.land_mortgage_grace_years_remaining > 0
+                else max(state.land_mortgage_years_remaining - 1, 0)
+            )
+        else:
+            next_land_years = 0
+            next_land_grace_years = 0
         coverage = dscr(net_income, annual_debt_payment)
         next_failures = state.consecutive_dscr_failures + 1 if coverage < 1.0 else 0
 
@@ -72,6 +77,7 @@ class FarmSimulator:
             debt=next_debt,
             land_mortgage_balance=next_land_balance,
             land_mortgage_years_remaining=next_land_years,
+            land_mortgage_grace_years_remaining=next_land_grace_years,
             alive=not failed,
             consecutive_dscr_failures=next_failures,
             cumulative_profit=state.cumulative_profit + net_income,

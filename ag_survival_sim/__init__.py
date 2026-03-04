@@ -89,6 +89,7 @@ from .scenario import AnnualScenario, ScenarioGenerator
 from .finance import planned_operating_cost
 from .simulator import FarmSimulator
 from .types import Action, FarmState, FarmStepRecord
+from .visualization import plot_policy_action_traces, plot_policy_profit_traces
 
 __all__ = [
     "Action",
@@ -178,6 +179,8 @@ __all__ = [
     "list_benchmark_definitions",
     "list_dssat_experiments",
     "planned_operating_cost",
+    "plot_policy_action_traces",
+    "plot_policy_profit_traces",
     "read_weather_code",
     "resolve_dssat_root",
     "run_dssat_example",

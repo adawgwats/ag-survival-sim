@@ -65,6 +65,8 @@ def operating_debt_payment(state: FarmState) -> float:
 
 
 def land_mortgage_payment(state: FarmState) -> float:
+    if state.land_mortgage_grace_years_remaining > 0:
+        return 0.0
     return amortized_payment(
         state.land_mortgage_balance,
         state.land_mortgage_rate,
