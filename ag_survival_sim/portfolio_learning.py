@@ -4,6 +4,7 @@ import random
 from dataclasses import dataclass
 from itertools import combinations
 from statistics import mean
+from typing import Callable
 
 import numpy as np
 
@@ -44,6 +45,9 @@ class LearnedPortfolioConfig:
     max_share_per_action: float = 1.0
     max_share_per_crop: float = 1.0
     bankruptcy_penalty_per_acre: float = 15_000.0
+    allocation_search_rounds: int = 6
+    allocation_search_samples: int = 96
+    allocation_search_elite_count: int = 12
 
     def __post_init__(self) -> None:
         if self.horizon_years <= 0:
@@ -70,6 +74,12 @@ class LearnedPortfolioConfig:
             raise ValueError("max_share_per_crop must be in (0, 1].")
         if self.bankruptcy_penalty_per_acre < 0.0:
             raise ValueError("bankruptcy_penalty_per_acre must be nonnegative.")
+        if self.allocation_search_rounds <= 0:
+            raise ValueError("allocation_search_rounds must be positive.")
+        if self.allocation_search_samples <= 0:
+            raise ValueError("allocation_search_samples must be positive.")
+        if self.allocation_search_elite_count <= 0:
+            raise ValueError("allocation_search_elite_count must be positive.")
 
 
 @dataclass(frozen=True)
@@ -211,37 +221,13 @@ class PortfolioCandidateGenerator:
         state: FarmState,
         weights_by_action_key: dict[tuple[str, str], float],
     ) -> PortfolioAllocation:
-        available_capital = state.cash + state.remaining_credit
-        max_acres_per_action = state.acres * self.max_share_per_action
-        max_acres_per_crop = state.acres * self.max_share_per_crop
-
-        crop_acres: dict[str, float] = {}
-        slices: list[AllocationSlice] = []
-        for action in self.actions:
-            desired_weight = weights_by_action_key.get(action.key, 0.0)
-            if desired_weight <= 0.0:
-                continue
-            desired_acres = desired_weight * state.acres
-            crop_remaining = max_acres_per_crop - crop_acres.get(action.crop, 0.0)
-            acres = min(desired_acres, max_acres_per_action, crop_remaining)
-            if acres <= 1e-9:
-                continue
-            slices.append(AllocationSlice(action=action, acres=acres))
-            crop_acres[action.crop] = crop_acres.get(action.crop, 0.0) + acres
-
-        if not slices:
-            return PortfolioAllocation(())
-
-        total_planned_cost = sum(planned_operating_cost(s.action, s.acres) for s in slices)
-        if total_planned_cost > available_capital > 0.0:
-            scale = available_capital / total_planned_cost
-            slices = [
-                AllocationSlice(action=s.action, acres=s.acres * scale)
-                for s in slices
-                if s.acres * scale > 1e-6
-            ]
-
-        return PortfolioAllocation(tuple(slices))
+        return _allocation_from_weights(
+            self.actions,
+            state,
+            weights_by_action_key,
+            max_share_per_action=self.max_share_per_action,
+            max_share_per_crop=self.max_share_per_crop,
+        )
 
     @staticmethod
     def _unique_allocations(candidates: list[PortfolioAllocation]) -> list[PortfolioAllocation]:
@@ -265,6 +251,111 @@ class PortfolioCandidateGenerator:
 
 
 @dataclass(frozen=True)
+class ContinuousAllocationOptimizer:
+    actions: tuple[Action, ...]
+    max_share_per_action: float = 1.0
+    max_share_per_crop: float = 1.0
+    search_rounds: int = 6
+    samples_per_round: int = 96
+    elite_count: int = 12
+
+    def __post_init__(self) -> None:
+        if not self.actions:
+            raise ValueError("actions must not be empty.")
+        if not 0.0 < self.max_share_per_action <= 1.0:
+            raise ValueError("max_share_per_action must be in (0, 1].")
+        if not 0.0 < self.max_share_per_crop <= 1.0:
+            raise ValueError("max_share_per_crop must be in (0, 1].")
+        if self.search_rounds <= 0:
+            raise ValueError("search_rounds must be positive.")
+        if self.samples_per_round <= 0:
+            raise ValueError("samples_per_round must be positive.")
+        if self.elite_count <= 0:
+            raise ValueError("elite_count must be positive.")
+
+    def optimize(
+        self,
+        state: FarmState,
+        scenario: AnnualScenario,
+        *,
+        score_fn: Callable[[PortfolioAllocation], float],
+        rng: random.Random,
+        seed_allocations: tuple[PortfolioAllocation, ...],
+    ) -> PortfolioAllocation:
+        del scenario
+        action_count = len(self.actions)
+        np_rng = np.random.default_rng(rng.randrange(0, 2**32 - 1))
+
+        seed_vectors = self._initial_weight_vectors(seed_allocations=seed_allocations)
+        alpha = np.maximum(np.mean(seed_vectors, axis=0), 1.0e-3)
+        alpha = alpha / alpha.sum()
+        alpha *= float(action_count)
+
+        best_allocation = PortfolioAllocation(())
+        best_score = float("-inf")
+
+        for round_index in range(self.search_rounds):
+            candidate_vectors: list[np.ndarray] = [vector.copy() for vector in seed_vectors]
+            candidate_vectors.append(alpha / alpha.sum())
+            for _ in range(self.samples_per_round):
+                candidate_vectors.append(np_rng.dirichlet(alpha))
+
+            scored_vectors: list[tuple[float, PortfolioAllocation, np.ndarray]] = []
+            for vector in candidate_vectors:
+                allocation = _allocation_from_weights(
+                    self.actions,
+                    state,
+                    {
+                        action.key: float(weight)
+                        for action, weight in zip(self.actions, vector)
+                    },
+                    max_share_per_action=self.max_share_per_action,
+                    max_share_per_crop=self.max_share_per_crop,
+                )
+                if allocation.total_acres <= 1e-9:
+                    continue
+                score = score_fn(allocation)
+                scored_vectors.append((score, allocation, vector))
+                if score > best_score:
+                    best_score = score
+                    best_allocation = allocation
+
+            if not scored_vectors:
+                continue
+
+            scored_vectors.sort(reverse=True, key=lambda item: item[0])
+            elite_vectors = [
+                vector
+                for _score, _allocation, vector in scored_vectors[: min(self.elite_count, len(scored_vectors))]
+            ]
+            seed_vectors = elite_vectors
+            elite_mean = np.maximum(np.mean(elite_vectors, axis=0), 1.0e-4)
+            elite_mean = elite_mean / elite_mean.sum()
+            concentration = 8.0 + 8.0 * round_index
+            alpha = np.maximum(elite_mean * concentration, 1.0e-3)
+
+        return best_allocation
+
+    def _initial_weight_vectors(
+        self,
+        *,
+        seed_allocations: tuple[PortfolioAllocation, ...],
+    ) -> list[np.ndarray]:
+        vectors: list[np.ndarray] = []
+        action_count = len(self.actions)
+        for index in range(action_count):
+            vector = np.zeros(action_count, dtype=float)
+            vector[index] = 1.0
+            vectors.append(vector)
+        vectors.append(np.full(action_count, 1.0 / action_count, dtype=float))
+        for allocation in seed_allocations:
+            vector = _weights_from_allocation(self.actions, allocation)
+            if float(vector.sum()) > 0.0:
+                vectors.append(vector)
+        return vectors
+
+
+@dataclass(frozen=True)
 class LearnedRolloutPortfolioPolicy:
     actions: tuple[Action, ...]
     crop_model: CropModel
@@ -272,7 +363,7 @@ class LearnedRolloutPortfolioPolicy:
     parameters: tuple[float, ...]
     target_mean: float
     target_std: float
-    candidate_generator: PortfolioCandidateGenerator
+    allocation_optimizer: ContinuousAllocationOptimizer
     seed_policies: tuple[PortfolioPolicy, ...]
     training_summary: LearnedPortfolioTrainingSummary
     seed: int = 0
@@ -283,23 +374,13 @@ class LearnedRolloutPortfolioPolicy:
             for policy in self.seed_policies
         )
         rng = random.Random(hash((self.seed, state.year, round(state.cash, 2), round(state.debt, 2), scenario.year_index)))
-        candidates = self.candidate_generator.generate(
+        return self.allocation_optimizer.optimize(
             state,
             scenario,
+            score_fn=lambda candidate: self._score(state, scenario, candidate),
             rng=rng,
             seed_allocations=seed_allocations,
         )
-        if not candidates:
-            return PortfolioAllocation(())
-
-        best_candidate = candidates[0]
-        best_score = self._score(state, scenario, best_candidate)
-        for candidate in candidates[1:]:
-            score = self._score(state, scenario, candidate)
-            if score > best_score:
-                best_candidate = candidate
-                best_score = score
-        return best_candidate
 
     def _score(
         self,
@@ -337,6 +418,14 @@ def train_learned_rollout_portfolio_policy(
         max_active_actions=config.max_active_actions,
         max_share_per_action=config.max_share_per_action,
         max_share_per_crop=config.max_share_per_crop,
+    )
+    allocation_optimizer = ContinuousAllocationOptimizer(
+        actions=actions,
+        max_share_per_action=config.max_share_per_action,
+        max_share_per_crop=config.max_share_per_crop,
+        search_rounds=config.allocation_search_rounds,
+        samples_per_round=config.allocation_search_samples,
+        elite_count=config.allocation_search_elite_count,
     )
 
     all_policies = dict(exploration_policies)
@@ -423,11 +512,129 @@ def train_learned_rollout_portfolio_policy(
         parameters=tuple(parameters),
         target_mean=target_mean,
         target_std=target_std,
-        candidate_generator=candidate_generator,
+        allocation_optimizer=allocation_optimizer,
         seed_policies=tuple(exploration_policies.values()),
         training_summary=training_summary,
         seed=config.training_seed,
     )
+
+
+def _weights_from_allocation(
+    actions: tuple[Action, ...],
+    allocation: PortfolioAllocation,
+) -> np.ndarray:
+    weight_by_action = {
+        allocation_slice.action.key: allocation_slice.acres
+        for allocation_slice in allocation.nonzero_slices()
+    }
+    total_acres = sum(weight_by_action.values())
+    if total_acres <= 1e-9:
+        return np.zeros(len(actions), dtype=float)
+    return np.asarray(
+        [weight_by_action.get(action.key, 0.0) / total_acres for action in actions],
+        dtype=float,
+    )
+
+
+def _allocation_from_weights(
+    actions: tuple[Action, ...],
+    state: FarmState,
+    weights_by_action_key: dict[tuple[str, str], float],
+    *,
+    max_share_per_action: float,
+    max_share_per_crop: float,
+) -> PortfolioAllocation:
+    if state.acres <= 1e-9:
+        return PortfolioAllocation(())
+
+    normalized_weights = {
+        action.key: max(weights_by_action_key.get(action.key, 0.0), 0.0)
+        for action in actions
+    }
+    total_weight = sum(normalized_weights.values())
+    if total_weight <= 1e-9:
+        return PortfolioAllocation(())
+    normalized_weights = {
+        key: value / total_weight
+        for key, value in normalized_weights.items()
+        if value > 1e-9
+    }
+
+    action_by_key = {action.key: action for action in actions}
+    action_caps = {
+        action.key: state.acres * max_share_per_action
+        for action in actions
+    }
+    crop_caps = {
+        action.crop: state.acres * max_share_per_crop
+        for action in actions
+    }
+    allocated = {action.key: 0.0 for action in actions}
+    crop_acres = {action.crop: 0.0 for action in actions}
+    remaining_weights = dict(normalized_weights)
+    remaining_total = state.acres
+
+    while remaining_total > 1e-9 and remaining_weights:
+        weight_total = sum(remaining_weights.values())
+        if weight_total <= 1e-9:
+            break
+        saturated: list[tuple[str, str]] = []
+        progress = 0.0
+        for action_key, weight in list(remaining_weights.items()):
+            action = action_by_key[action_key]
+            desired_acres = remaining_total * weight / weight_total
+            remaining_action_cap = action_caps[action_key] - allocated[action_key]
+            remaining_crop_cap = crop_caps[action.crop] - crop_acres[action.crop]
+            remaining_cap = min(remaining_action_cap, remaining_crop_cap)
+            if remaining_cap <= 1e-9:
+                saturated.append(action_key)
+                continue
+            if desired_acres >= remaining_cap - 1e-9:
+                allocated[action_key] += remaining_cap
+                crop_acres[action.crop] += remaining_cap
+                progress += remaining_cap
+                saturated.append(action_key)
+        if not saturated:
+            for action_key, weight in list(remaining_weights.items()):
+                action = action_by_key[action_key]
+                desired_acres = remaining_total * weight / weight_total
+                remaining_action_cap = action_caps[action_key] - allocated[action_key]
+                remaining_crop_cap = crop_caps[action.crop] - crop_acres[action.crop]
+                acres = min(desired_acres, remaining_action_cap, remaining_crop_cap)
+                if acres <= 1e-9:
+                    continue
+                allocated[action_key] += acres
+                crop_acres[action.crop] += acres
+                progress += acres
+            break
+
+        if progress <= 1e-9:
+            break
+        remaining_total = state.acres - sum(allocated.values())
+        for action_key in saturated:
+            remaining_weights.pop(action_key, None)
+
+    slices = [
+        AllocationSlice(action=action_by_key[action_key], acres=acres)
+        for action_key, acres in allocated.items()
+        if acres > 1e-6
+    ]
+    if not slices:
+        return PortfolioAllocation(())
+
+    available_capital = state.cash + state.remaining_credit
+    total_planned_cost = sum(planned_operating_cost(s.action, s.acres) for s in slices)
+    if total_planned_cost > available_capital > 0.0:
+        scale = available_capital / total_planned_cost
+        slices = [
+            AllocationSlice(action=s.action, acres=s.acres * scale)
+            for s in slices
+            if s.acres * scale > 1e-6
+        ]
+    elif available_capital <= 0.0:
+        return PortfolioAllocation(())
+
+    return PortfolioAllocation(tuple(slices))
 
 
 def _targets_from_steps(

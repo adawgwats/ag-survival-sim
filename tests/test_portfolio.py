@@ -1,8 +1,11 @@
+import random
+
 from ag_survival_sim import (
     Action,
     AnnualScenario,
     AllocationSlice,
     ChristensenKnightianPortfolioPolicy,
+    ContinuousAllocationOptimizer,
     FarmState,
     GreedyMarginPortfolioPolicy,
     LearnedPortfolioConfig,
@@ -197,6 +200,57 @@ def test_random_portfolio_policy_returns_feasible_allocation() -> None:
 
     assert allocation.total_acres <= 100.0 + 1e-6
     assert allocation.total_acres > 0.0
+
+
+def test_continuous_allocation_optimizer_finds_non_grid_split() -> None:
+    optimizer = ContinuousAllocationOptimizer(
+        actions=(
+            Action("corn", "rainfed_low"),
+            Action("soy", "medium"),
+        ),
+        search_rounds=5,
+        samples_per_round=64,
+        elite_count=8,
+    )
+    state = FarmState.initial(cash=500_000.0, debt=0.0, credit_limit=50_000.0, acres=100.0)
+    scenario = ScenarioGenerator(seed=8).generate_path(1)[0]
+    allocation = optimizer.optimize(
+        state,
+        scenario,
+        score_fn=lambda candidate: -(
+            (
+                next(
+                    (allocation_slice.acres for allocation_slice in candidate.slices if allocation_slice.action.crop == "corn"),
+                    0.0,
+                )
+                - 62.0
+            )
+            ** 2
+            + (
+                next(
+                    (allocation_slice.acres for allocation_slice in candidate.slices if allocation_slice.action.crop == "soy"),
+                    0.0,
+                )
+                - 38.0
+            )
+            ** 2
+        ),
+        rng=random.Random(123),
+        seed_allocations=(),
+    )
+
+    corn_acres = next(
+        (allocation_slice.acres for allocation_slice in allocation.slices if allocation_slice.action.crop == "corn"),
+        0.0,
+    )
+    soy_acres = next(
+        (allocation_slice.acres for allocation_slice in allocation.slices if allocation_slice.action.crop == "soy"),
+        0.0,
+    )
+
+    assert allocation.total_acres <= 100.0 + 1e-6
+    assert 55.0 <= corn_acres <= 69.0
+    assert 31.0 <= soy_acres <= 45.0
 
 
 def test_learned_rollout_policy_trains_and_returns_feasible_allocation() -> None:

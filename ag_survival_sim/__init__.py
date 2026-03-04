@@ -92,6 +92,7 @@ from .portfolio import (
     StaticPortfolioPolicy,
 )
 from .portfolio_learning import (
+    ContinuousAllocationOptimizer,
     LearnedPortfolioConfig,
     LearnedPortfolioTrainingSummary,
     LearnedRolloutPortfolioPolicy,
@@ -136,6 +137,7 @@ __all__ = [
     "AnnualScenario",
     "CropModel",
     "ChristensenKnightianPortfolioPolicy",
+    "ContinuousAllocationOptimizer",
     "DSSATBenchmarkDefinition",
     "DSSATCropInventory",
     "DEFAULT_TRANSFORM_BY_REGIME",
