@@ -23,6 +23,7 @@ ag-survival-iowa-maize = "ag_survival_sim.cli:run_iowa_maize_demo_cli"
 ag-survival-dssat-benchmark = "ag_survival_sim.cli:run_iowa_maize_demo_cli"
 ag-survival-dssat-catalog = "ag_survival_sim.cli:run_dssat_catalog_cli"
 ag-survival-dssat-all-crops = "ag_survival_sim.cli:run_dssat_all_crops_cli"
+ag-survival-portfolio-benchmark = "ag_survival_sim.cli:run_portfolio_benchmark_cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

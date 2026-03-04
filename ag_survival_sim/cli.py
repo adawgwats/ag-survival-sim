@@ -17,6 +17,14 @@ from .dssat_suite import (
     run_dssat_example_suite,
 )
 from .evaluation import evaluate_policies
+from .portfolio_benchmarks import (
+    PORTFOLIO_BENCHMARK_DEFINITIONS,
+    build_portfolio_benchmark_crop_model,
+    build_portfolio_demo_policies,
+    get_portfolio_benchmark_definition,
+)
+from .portfolio_evaluation import evaluate_portfolio_policies
+from .portfolio_simulator import PortfolioFarmSimulator
 from .policy import GreedyProfitPolicy, StaticPolicy
 from .scenario import ScenarioGenerator
 from .simulator import FarmSimulator
@@ -237,6 +245,83 @@ def run_dssat_all_crops_cli() -> None:
     print(format_dssat_all_crops_summary(summary))
     print()
     print(f"treatment rows exported to: {args.output_csv}")
+
+
+def run_portfolio_benchmark_cli() -> None:
+    parser = argparse.ArgumentParser(
+        description="Run a DSSAT-backed diversified portfolio benchmark."
+    )
+    parser.add_argument("--root", type=str, default=None, help="DSSAT install root. Defaults to DSSAT_ROOT or C:\\DSSAT48.")
+    parser.add_argument(
+        "--benchmark",
+        choices=sorted(PORTFOLIO_BENCHMARK_DEFINITIONS),
+        default="georgia_diversified_portfolio",
+        help="Portfolio benchmark to run.",
+    )
+    parser.add_argument("--workspace-root", type=str, default="dssat_runs/portfolio_demo", help="Directory for per-run DSSAT workspaces.")
+    parser.add_argument("--seed", type=int, default=13, help="Scenario RNG seed.")
+    parser.add_argument("--paths", type=int, default=8, help="Number of paired scenario paths.")
+    parser.add_argument("--horizon", type=int, default=6, help="Simulation horizon in years.")
+    parser.add_argument("--cash", type=float, default=300000.0, help="Initial farm cash.")
+    parser.add_argument("--debt", type=float, default=100000.0, help="Initial farm debt.")
+    parser.add_argument("--credit-limit", type=float, default=175000.0, help="Initial credit limit.")
+    parser.add_argument("--acres", type=float, default=500.0, help="Farm acreage.")
+    parser.add_argument("--land-value-per-acre", type=float, default=4000.0, help="Initial land value per acre.")
+    parser.add_argument("--land-financed-fraction", type=float, default=0.5, help="Fraction of initial land cost financed by mortgage.")
+    parser.add_argument("--land-mortgage-rate", type=float, default=0.045, help="Annual land mortgage rate.")
+    parser.add_argument("--land-mortgage-years", type=int, default=30, help="Remaining land mortgage years at simulation start.")
+    parser.add_argument("--land-mortgage-grace-years", type=int, default=2, help="Grace periods before land mortgage payments begin.")
+    args = parser.parse_args()
+
+    benchmark = get_portfolio_benchmark_definition(args.benchmark)
+    crop_model = build_portfolio_benchmark_crop_model(
+        args.benchmark,
+        dssat_root=args.root,
+        workspace_root=args.workspace_root,
+    )
+    simulator = PortfolioFarmSimulator(crop_model=crop_model)
+    policies = build_portfolio_demo_policies(args.benchmark, crop_model=crop_model)
+    initial_state = FarmState.initial(
+        cash=args.cash,
+        debt=args.debt,
+        credit_limit=args.credit_limit,
+        acres=args.acres,
+        land_value_per_acre=args.land_value_per_acre,
+        land_financed_fraction=args.land_financed_fraction,
+        land_mortgage_rate=args.land_mortgage_rate,
+        land_mortgage_years=args.land_mortgage_years,
+        land_mortgage_grace_years=args.land_mortgage_grace_years,
+    )
+
+    print(f"portfolio benchmark: {benchmark.name}")
+    print(f"description: {benchmark.description}")
+    print("available options")
+    for option in benchmark.options:
+        print(f"  - {option.action.crop}_{option.action.input_level} via {option.source_benchmark_name}")
+    print("initial state")
+    print(f"  cash: {initial_state.cash:,.0f}")
+    print(f"  operating debt: {initial_state.debt:,.0f}")
+    print(f"  credit limit: {initial_state.credit_limit:,.0f}")
+    print(f"  acres: {initial_state.acres:,.0f}")
+    print(f"  land mortgage balance: {initial_state.land_mortgage_balance:,.0f}")
+    print(f"  land mortgage grace years remaining: {initial_state.land_mortgage_grace_years_remaining}")
+
+    summary = evaluate_portfolio_policies(
+        simulator=simulator,
+        scenario_generator=ScenarioGenerator(seed=args.seed),
+        policies=policies,
+        initial_state=initial_state,
+        horizon_years=args.horizon,
+        num_paths=args.paths,
+    )
+
+    for policy_name, metrics in summary.metrics.items():
+        print(policy_name)
+        print(f"  mean survival years: {metrics.mean_survival_years:.2f}")
+        print(f"  bankruptcy rate: {metrics.bankruptcy_rate:.2%}")
+        print(f"  mean terminal wealth: {metrics.mean_terminal_wealth:,.0f}")
+        print(f"  5th pct terminal wealth: {metrics.fifth_percentile_terminal_wealth:,.0f}")
+        print(f"  mean cumulative profit: {metrics.mean_cumulative_profit:,.0f}")
 
 
 def main() -> None:
