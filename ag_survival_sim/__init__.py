@@ -85,6 +85,7 @@ from .evaluation import (
 )
 from .portfolio import (
     AllocationSlice,
+    ChristensenKnightianPortfolioPolicy,
     GreedyMarginPortfolioPolicy,
     PortfolioAllocation,
     PortfolioPolicy,
@@ -126,6 +127,7 @@ __all__ = [
     "ACRES_PER_HECTARE",
     "AnnualScenario",
     "CropModel",
+    "ChristensenKnightianPortfolioPolicy",
     "DSSATBenchmarkDefinition",
     "DSSATCropInventory",
     "DEFAULT_TRANSFORM_BY_REGIME",

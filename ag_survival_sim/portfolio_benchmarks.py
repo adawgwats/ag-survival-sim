@@ -6,7 +6,13 @@ from typing import Mapping
 
 from .crop_model import CropModel
 from .dssat_benchmarks import build_benchmark_crop_model
-from .portfolio import AllocationSlice, GreedyMarginPortfolioPolicy, PortfolioPolicy, StaticPortfolioPolicy
+from .portfolio import (
+    AllocationSlice,
+    ChristensenKnightianPortfolioPolicy,
+    GreedyMarginPortfolioPolicy,
+    PortfolioPolicy,
+    StaticPortfolioPolicy,
+)
 from .portfolio_simulator import PortfolioFarmSimulator
 from .types import Action
 
@@ -148,5 +154,11 @@ def build_portfolio_demo_policies(
             actions=actions,
             crop_model=crop_model,
             max_share_per_action=0.6,
+        ),
+        "christensen_knightian": ChristensenKnightianPortfolioPolicy(
+            actions=actions,
+            crop_model=crop_model,
+            max_share_per_action=0.5,
+            max_share_per_crop=0.7,
         ),
     }

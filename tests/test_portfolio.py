@@ -1,6 +1,7 @@
 from ag_survival_sim import (
     Action,
     AllocationSlice,
+    ChristensenKnightianPortfolioPolicy,
     FarmState,
     GreedyMarginPortfolioPolicy,
     PortfolioAllocation,
@@ -106,3 +107,30 @@ def test_portfolio_evaluation_returns_metrics() -> None:
     assert set(summary.metrics) == {"split", "greedy"}
     assert summary.metrics["split"].mean_survival_years >= 0.0
     assert summary.metrics["greedy"].mean_cumulative_profit != 0.0
+
+
+def test_christensen_knightian_policy_returns_feasible_diversified_allocation() -> None:
+    simulator = build_portfolio_simulator()
+    policy = ChristensenKnightianPortfolioPolicy(
+        actions=(
+            Action("corn", "irrigated_low"),
+            Action("soy", "medium"),
+            Action("peanut", "medium"),
+        ),
+        crop_model=simulator.crop_model,
+        max_share_per_action=0.5,
+        max_share_per_crop=0.7,
+    )
+    state = FarmState.initial(
+        cash=500_000.0,
+        debt=0.0,
+        credit_limit=100_000.0,
+        acres=100.0,
+        land_mortgage_grace_years=0,
+    )
+    scenario = ScenarioGenerator(seed=3).generate_path(1)[0]
+    allocation = policy.choose_allocation(state, scenario)
+
+    assert allocation.total_acres <= 100.0
+    assert allocation.total_acres > 0.0
+    assert all(allocation_slice.acres <= 50.0 + 1e-6 for allocation_slice in allocation.slices)
