@@ -8,7 +8,10 @@ from .finance import (
     NEXT_YEAR_OPERATING_BUFFER,
     debt_payment,
     dscr,
+    land_mortgage_payment,
     liquidity_failure,
+    next_land_mortgage_balance,
+    operating_debt_payment,
     operating_cost,
     planned_operating_cost,
     realized_price,
@@ -40,10 +43,18 @@ class FarmSimulator:
         gross_revenue = yield_per_acre * state.acres * price
         planned_cost = planned_operating_cost(action, state.acres)
         total_operating_cost = operating_cost(action, state.acres, scenario)
+        annual_operating_debt_payment = operating_debt_payment(state)
+        annual_land_payment = land_mortgage_payment(state)
         annual_debt_payment = debt_payment(state)
         net_income = gross_revenue - total_operating_cost - annual_debt_payment
         next_cash = state.cash + net_income
-        next_debt = max(state.debt * (1.0 + ANNUAL_INTEREST_RATE) - annual_debt_payment, 0.0)
+        next_debt = max(state.debt * (1.0 + ANNUAL_INTEREST_RATE) - annual_operating_debt_payment, 0.0)
+        next_land_balance = next_land_mortgage_balance(state, annual_land_payment)
+        next_land_years = (
+            max(state.land_mortgage_years_remaining - 1, 0)
+            if next_land_balance > 0.0
+            else 0
+        )
         coverage = dscr(net_income, annual_debt_payment)
         next_failures = state.consecutive_dscr_failures + 1 if coverage < 1.0 else 0
 
@@ -59,6 +70,8 @@ class FarmSimulator:
         ending_state = state.advance_year(
             cash=next_cash,
             debt=next_debt,
+            land_mortgage_balance=next_land_balance,
+            land_mortgage_years_remaining=next_land_years,
             alive=not failed,
             consecutive_dscr_failures=next_failures,
             cumulative_profit=state.cumulative_profit + net_income,

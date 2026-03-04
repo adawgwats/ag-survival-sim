@@ -22,6 +22,10 @@ class TrainingExample:
     debt: float
     credit_limit: float
     acres: float
+    land_value_per_acre: float
+    land_mortgage_balance: float
+    land_mortgage_rate: float
+    land_mortgage_years_remaining: int
     latent_yield_per_acre: float
     latent_net_income: float
     latent_price: float
@@ -77,6 +81,10 @@ def generate_training_examples(
                 debt=record.starting_state.debt,
                 credit_limit=record.starting_state.credit_limit,
                 acres=record.starting_state.acres,
+                land_value_per_acre=record.starting_state.land_value_per_acre,
+                land_mortgage_balance=record.starting_state.land_mortgage_balance,
+                land_mortgage_rate=record.starting_state.land_mortgage_rate,
+                land_mortgage_years_remaining=record.starting_state.land_mortgage_years_remaining,
                 latent_yield_per_acre=record.realized_yield_per_acre,
                 latent_net_income=record.net_income,
                 latent_price=record.realized_price,

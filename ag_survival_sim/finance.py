@@ -51,8 +51,36 @@ def operating_cost(action: Action, acres: float, scenario: AnnualScenario) -> fl
     return economics.operating_cost_per_acre * acres * scenario.operating_cost_multiplier
 
 
-def debt_payment(state: FarmState) -> float:
+def amortized_payment(principal: float, annual_rate: float, years_remaining: int) -> float:
+    if principal <= 0.0 or years_remaining <= 0:
+        return 0.0
+    if annual_rate <= 0.0:
+        return principal / years_remaining
+    growth = (1.0 + annual_rate) ** years_remaining
+    return principal * annual_rate * growth / max(growth - 1.0, 1e-9)
+
+
+def operating_debt_payment(state: FarmState) -> float:
     return state.debt * (ANNUAL_INTEREST_RATE + MINIMUM_DEBT_PAYMENT_RATE)
+
+
+def land_mortgage_payment(state: FarmState) -> float:
+    return amortized_payment(
+        state.land_mortgage_balance,
+        state.land_mortgage_rate,
+        state.land_mortgage_years_remaining,
+    )
+
+
+def debt_payment(state: FarmState) -> float:
+    return operating_debt_payment(state) + land_mortgage_payment(state)
+
+
+def next_land_mortgage_balance(state: FarmState, annual_payment: float) -> float:
+    if state.land_mortgage_balance <= 0.0 or state.land_mortgage_years_remaining <= 0:
+        return 0.0
+    next_balance = state.land_mortgage_balance * (1.0 + state.land_mortgage_rate) - annual_payment
+    return max(next_balance, 0.0)
 
 
 def dscr(net_income: float, annual_debt_payment: float) -> float:

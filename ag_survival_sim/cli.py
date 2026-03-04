@@ -126,6 +126,10 @@ def run_iowa_maize_demo_cli() -> None:
     parser.add_argument("--debt", type=float, default=100000.0, help="Initial farm debt.")
     parser.add_argument("--credit-limit", type=float, default=175000.0, help="Initial credit limit.")
     parser.add_argument("--acres", type=float, default=500.0, help="Farm acreage.")
+    parser.add_argument("--land-value-per-acre", type=float, default=4000.0, help="Initial land value per acre.")
+    parser.add_argument("--land-financed-fraction", type=float, default=0.5, help="Fraction of initial land cost financed by mortgage.")
+    parser.add_argument("--land-mortgage-rate", type=float, default=0.045, help="Annual land mortgage rate.")
+    parser.add_argument("--land-mortgage-years", type=int, default=30, help="Remaining land mortgage years at simulation start.")
     args = parser.parse_args()
 
     benchmark = get_benchmark_definition(args.benchmark)
@@ -138,16 +142,32 @@ def run_iowa_maize_demo_cli() -> None:
         f"{action.crop}_{action.input_level}": StaticPolicy(action)
         for action in benchmark.actions
     }
+    initial_state = FarmState.initial(
+        cash=args.cash,
+        debt=args.debt,
+        credit_limit=args.credit_limit,
+        acres=args.acres,
+        land_value_per_acre=args.land_value_per_acre,
+        land_financed_fraction=args.land_financed_fraction,
+        land_mortgage_rate=args.land_mortgage_rate,
+        land_mortgage_years=args.land_mortgage_years,
+    )
+
+    print("initial state")
+    print(f"  cash: {initial_state.cash:,.0f}")
+    print(f"  operating debt: {initial_state.debt:,.0f}")
+    print(f"  credit limit: {initial_state.credit_limit:,.0f}")
+    print(f"  acres: {initial_state.acres:,.0f}")
+    print(f"  land value per acre: {initial_state.land_value_per_acre:,.0f}")
+    print(f"  land mortgage balance: {initial_state.land_mortgage_balance:,.0f}")
+    print(f"  land mortgage rate: {initial_state.land_mortgage_rate:.3f}")
+    print(f"  land mortgage years remaining: {initial_state.land_mortgage_years_remaining}")
+
     summary = evaluate_policies(
         simulator=simulator,
         scenario_generator=ScenarioGenerator(seed=args.seed),
         policies=policies,
-        initial_state=FarmState.initial(
-            cash=args.cash,
-            debt=args.debt,
-            credit_limit=args.credit_limit,
-            acres=args.acres,
-        ),
+        initial_state=initial_state,
         horizon_years=args.horizon,
         num_paths=args.paths,
     )
