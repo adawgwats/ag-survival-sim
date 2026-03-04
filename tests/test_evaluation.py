@@ -32,4 +32,5 @@ def test_policy_evaluation_is_paired_and_returns_metrics() -> None:
 
     assert set(summary.metrics) == {"corn", "soy"}
     assert summary.metrics["corn"].mean_survival_years >= 0.0
+    assert 0.0 <= summary.metrics["corn"].full_horizon_survival_rate <= 1.0
     assert summary.metrics["soy"].bankruptcy_rate >= 0.0

@@ -91,6 +91,14 @@ from .portfolio import (
     PortfolioPolicy,
     StaticPortfolioPolicy,
 )
+from .portfolio_learning import (
+    LearnedPortfolioConfig,
+    LearnedPortfolioTrainingSummary,
+    LearnedRolloutPortfolioPolicy,
+    RandomPortfolioPolicy,
+    build_learning_exploration_policies,
+    train_learned_rollout_portfolio_policy,
+)
 from .portfolio_benchmarks import (
     PORTFOLIO_BENCHMARK_DEFINITIONS,
     CompositeBenchmarkCropModel,
@@ -157,6 +165,9 @@ __all__ = [
     "GEORGIA_SOYBEAN_ACTIONS",
     "IOWA_MAIZE_ACTIONS",
     "KANSAS_WHEAT_ACTIONS",
+    "LearnedPortfolioConfig",
+    "LearnedPortfolioTrainingSummary",
+    "LearnedRolloutPortfolioPolicy",
     "ObservationProcess",
     "ObservationRecord",
     "PORTFOLIO_BENCHMARK_DEFINITIONS",
@@ -228,6 +239,7 @@ __all__ = [
     "list_benchmark_definitions",
     "list_portfolio_benchmark_definitions",
     "list_dssat_experiments",
+    "RandomPortfolioPolicy",
     "GreedyMarginPortfolioPolicy",
     "planned_operating_cost",
     "plot_policy_action_traces",
@@ -237,4 +249,6 @@ __all__ = [
     "run_dssat_example",
     "run_dssat_example_suite",
     "run_dssat_all_crops_sweep",
+    "build_learning_exploration_policies",
+    "train_learned_rollout_portfolio_policy",
 ]

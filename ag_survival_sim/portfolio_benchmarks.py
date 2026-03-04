@@ -13,7 +13,13 @@ from .portfolio import (
     PortfolioPolicy,
     StaticPortfolioPolicy,
 )
+from .portfolio_learning import (
+    LearnedPortfolioConfig,
+    build_learning_exploration_policies,
+    train_learned_rollout_portfolio_policy,
+)
 from .portfolio_simulator import PortfolioFarmSimulator
+from .types import FarmState
 from .types import Action
 
 
@@ -131,11 +137,14 @@ def build_portfolio_demo_policies(
     benchmark_name: str,
     *,
     crop_model: CropModel,
+    include_learned_policy: bool = False,
+    initial_state: FarmState | None = None,
+    learning_config: LearnedPortfolioConfig | None = None,
 ) -> dict[str, PortfolioPolicy]:
     definition = get_portfolio_benchmark_definition(benchmark_name)
     actions = tuple(option.action for option in definition.options)
 
-    return {
+    policies = {
         "equal_mix": StaticPortfolioPolicy(
             shares=(
                 AllocationSlice(Action("corn", "irrigated_low"), 1.0 / 3.0),
@@ -162,3 +171,18 @@ def build_portfolio_demo_policies(
             max_share_per_crop=0.7,
         ),
     }
+    if include_learned_policy:
+        if initial_state is None:
+            raise ValueError("initial_state is required when include_learned_policy=True.")
+        effective_learning_config = learning_config or LearnedPortfolioConfig()
+        policies["learned_rollout"] = train_learned_rollout_portfolio_policy(
+            actions=actions,
+            crop_model=crop_model,
+            initial_state=initial_state,
+            config=effective_learning_config,
+            exploration_policies=build_learning_exploration_policies(
+                actions=actions,
+                crop_model=crop_model,
+            ),
+        )
+    return policies

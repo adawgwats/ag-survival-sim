@@ -85,12 +85,18 @@ def summarize_portfolio_policy(path_results: list[PortfolioPathResult]) -> Polic
     terminal_wealth = [result.final_state.cash - result.final_state.debt for result in path_results]
     cumulative_profit = [result.final_state.cumulative_profit for result in path_results]
     bankruptcies = sum(1 for result in path_results if result.bankrupt)
+    full_horizon_survivals = sum(
+        1
+        for result in path_results
+        if result.steps and result.steps[-1].ending_state.alive
+    )
     ordered_terminal_wealth = sorted(terminal_wealth)
     fifth_index = max(int(0.05 * len(ordered_terminal_wealth)) - 1, 0)
 
     return PolicyMetrics(
         mean_survival_years=mean(survival_years),
         median_survival_years=median(survival_years),
+        full_horizon_survival_rate=full_horizon_survivals / len(path_results),
         bankruptcy_rate=bankruptcies / len(path_results),
         mean_terminal_wealth=mean(terminal_wealth),
         fifth_percentile_terminal_wealth=ordered_terminal_wealth[fifth_index],

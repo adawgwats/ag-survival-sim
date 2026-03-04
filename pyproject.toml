@@ -13,6 +13,7 @@ authors = [
   { name = "Andrew Watson" }
 ]
 dependencies = [
+  "numpy>=1.23",
   "matplotlib>=3.8",
 ]
 

@@ -24,6 +24,7 @@ from .portfolio_benchmarks import (
     get_portfolio_benchmark_definition,
 )
 from .portfolio_evaluation import evaluate_portfolio_policies
+from .portfolio_learning import LearnedPortfolioConfig
 from .portfolio_simulator import PortfolioFarmSimulator
 from .policy import GreedyProfitPolicy, StaticPolicy
 from .scenario import ScenarioGenerator
@@ -80,6 +81,7 @@ def run_demo() -> None:
     for policy_name, metrics in summary.metrics.items():
         print(policy_name)
         print(f"  mean survival years: {metrics.mean_survival_years:.2f}")
+        print(f"  full horizon survival rate: {metrics.full_horizon_survival_rate:.2%}")
         print(f"  bankruptcy rate: {metrics.bankruptcy_rate:.2%}")
         print(f"  mean terminal wealth: {metrics.mean_terminal_wealth:,.0f}")
         print(f"  5th pct terminal wealth: {metrics.fifth_percentile_terminal_wealth:,.0f}")
@@ -186,6 +188,7 @@ def run_iowa_maize_demo_cli() -> None:
     for policy_name, metrics in summary.metrics.items():
         print(policy_name)
         print(f"  mean survival years: {metrics.mean_survival_years:.2f}")
+        print(f"  full horizon survival rate: {metrics.full_horizon_survival_rate:.2%}")
         print(f"  bankruptcy rate: {metrics.bankruptcy_rate:.2%}")
         print(f"  mean terminal wealth: {metrics.mean_terminal_wealth:,.0f}")
         print(f"  5th pct terminal wealth: {metrics.fifth_percentile_terminal_wealth:,.0f}")
@@ -271,6 +274,11 @@ def run_portfolio_benchmark_cli() -> None:
     parser.add_argument("--land-mortgage-rate", type=float, default=0.045, help="Annual land mortgage rate.")
     parser.add_argument("--land-mortgage-years", type=int, default=30, help="Remaining land mortgage years at simulation start.")
     parser.add_argument("--land-mortgage-grace-years", type=int, default=2, help="Grace periods before land mortgage payments begin.")
+    parser.add_argument("--include-learned-policy", action="store_true", help="Train and evaluate a learned rollout portfolio policy.")
+    parser.add_argument("--learning-paths", type=int, default=12, help="Training scenario paths for the learned rollout policy.")
+    parser.add_argument("--learning-seed", type=int, default=101, help="Training scenario seed for the learned rollout policy.")
+    parser.add_argument("--learning-epochs", type=int, default=240, help="Gradient epochs for the learned rollout policy.")
+    parser.add_argument("--learning-bankruptcy-penalty-per-acre", type=float, default=15000.0, help="Penalty used when the learned rollout policy trains on bankrupt trajectories.")
     args = parser.parse_args()
 
     benchmark = get_portfolio_benchmark_definition(args.benchmark)
@@ -292,6 +300,22 @@ def run_portfolio_benchmark_cli() -> None:
         land_mortgage_years=args.land_mortgage_years,
         land_mortgage_grace_years=args.land_mortgage_grace_years,
     )
+    learning_config = None
+    if args.include_learned_policy:
+        learning_config = LearnedPortfolioConfig(
+            horizon_years=args.horizon,
+            training_paths=args.learning_paths,
+            training_seed=args.learning_seed,
+            epochs=args.learning_epochs,
+            bankruptcy_penalty_per_acre=args.learning_bankruptcy_penalty_per_acre,
+        )
+    policies = build_portfolio_demo_policies(
+        args.benchmark,
+        crop_model=crop_model,
+        include_learned_policy=args.include_learned_policy,
+        initial_state=initial_state,
+        learning_config=learning_config,
+    )
 
     print(f"portfolio benchmark: {benchmark.name}")
     print(f"description: {benchmark.description}")
@@ -305,6 +329,17 @@ def run_portfolio_benchmark_cli() -> None:
     print(f"  acres: {initial_state.acres:,.0f}")
     print(f"  land mortgage balance: {initial_state.land_mortgage_balance:,.0f}")
     print(f"  land mortgage grace years remaining: {initial_state.land_mortgage_grace_years_remaining}")
+    if learning_config is not None:
+        print("learned rollout training")
+        print(f"  training paths: {learning_config.training_paths}")
+        print(f"  training seed: {learning_config.training_seed}")
+        print(f"  epochs: {learning_config.epochs}")
+        print(f"  bankruptcy penalty per acre: {learning_config.bankruptcy_penalty_per_acre:,.0f}")
+        learned_policy = policies.get("learned_rollout")
+        if learned_policy is not None and hasattr(learned_policy, "training_summary"):
+            summary = learned_policy.training_summary
+            print(f"  training examples: {summary.example_count}")
+            print(f"  normalized train MSE: {summary.train_mse:.4f}")
 
     summary = evaluate_portfolio_policies(
         simulator=simulator,
@@ -318,6 +353,7 @@ def run_portfolio_benchmark_cli() -> None:
     for policy_name, metrics in summary.metrics.items():
         print(policy_name)
         print(f"  mean survival years: {metrics.mean_survival_years:.2f}")
+        print(f"  full horizon survival rate: {metrics.full_horizon_survival_rate:.2%}")
         print(f"  bankruptcy rate: {metrics.bankruptcy_rate:.2%}")
         print(f"  mean terminal wealth: {metrics.mean_terminal_wealth:,.0f}")
         print(f"  5th pct terminal wealth: {metrics.fifth_percentile_terminal_wealth:,.0f}")
